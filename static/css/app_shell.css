@@ -1,0 +1,185 @@
+/* ===== APP SHELL (после логина) ===== */
+.app-body{
+  background: #f6f7fb;
+  --brand-logo-size: 48px;
+}
+
+/* тонкая верхняя панель */
+.app-topbar{
+   background: rgba(255, 255, 255, 0.95);
+   backdrop-filter: blur(10px);
+   box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+   position: sticky;
+   top: 0;
+   z-index: 1000;
+}
+
+.app-topbar-inner{
+  padding: 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.app-topbar-right{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.app-user{
+  text-align: right;
+}
+
+.app-user-name{
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.app-user-role{
+  font-size: 12px;
+  opacity: .7;
+  text-transform: capitalize;
+}
+
+/* оболочка */
+.app-shell{
+  display: flex;
+  min-height: calc(100vh - 64px);
+}
+
+/* sidebar (взято из твоего layout.css, но живет здесь) */
+.sidebar-dashboard{
+  width: 280px;
+  background: linear-gradient(180deg, #2c3e50 0%, #1a252f 100%);
+  color: white;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.08);
+}
+
+.sidebar-header{
+  padding: 24px 18px;
+  border-bottom: 1px solid rgba(255,255,255,0.10);
+}
+
+.user-profile{
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.user-avatar{
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #4a6fa5, #3498db);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.20);
+}
+
+.user-details h4{
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+}
+
+.user-details .user-role{
+  font-size: 12px;
+  color: #bdc3c7;
+  text-transform: capitalize;
+  margin-top: 2px;
+}
+
+.sidebar-nav{
+  flex: 1;
+  padding: 16px 0;
+  overflow-y: auto;
+}
+
+.nav-section{
+  margin-bottom: 18px;
+}
+
+.section-title{
+  padding: 0 18px 10px;
+  margin: 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #7f8c8d;
+  font-weight: 700;
+}
+
+.sidebar-nav ul{ list-style: none; padding: 0; margin: 0; }
+
+.sidebar-nav a{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  color: #bdc3c7;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.sidebar-nav a:hover{
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+  border-left-color: #4a6fa5;
+}
+
+.sidebar-nav a.active{
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  border-left-color: var(--primary-color);
+  font-weight: 700;
+}
+
+.sidebar-nav i{
+  width: 20px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.sidebar-footer{
+  padding: 16px 18px;
+  border-top: 1px solid rgba(255,255,255,0.10);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sidebar-footer a{
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  color: #bdc3c7;
+  text-decoration: none;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.sidebar-footer a:hover{
+  background: rgba(255,255,255,0.06);
+  color: #fff;
+}
+
+.logout-link{ color: #ff7b7b !important; }
+.logout-link:hover{ background: rgba(231,76,60,0.12) !important; }
+
+/* контент справа */
+.dashboard-content{
+  flex: 1;
+  padding: 26px;
+  overflow-y: auto;
+  background: #f6f7fb;
+}

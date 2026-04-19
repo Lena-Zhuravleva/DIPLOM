@@ -1,0 +1,42 @@
+{% extends "layouts/app.html" %}
+{% block title %}Дашборд логиста - Logistic System{% endblock %}
+
+{% block content %}
+<div class="container logi-page">
+
+  <!-- Верх -->
+  <div class="logi-topbar">
+    <div>
+      <h1 class="logi-title">
+        <i class="fas fa-tachometer-alt"></i> Дашборд логиста
+      </h1>
+      <div class="logi-welcome">
+        Добро пожаловать, <strong>{{ session.full_name }}</strong>!
+      </div>
+    </div>
+  </div>
+
+  <!-- Статы -->
+  <div class="logi-stats">
+    <div class="logi-stat-card">
+      <div class="logi-stat-title"><i class="fas fa-exclamation-triangle"></i> Проблемные материалы</div>
+      <div class="logi-stat-value" id="statCritical">—</div>
+      <div class="logi-stat-sub">warning + critical</div>
+    </div>
+
+    <div class="logi-stat-card">
+      <div class="logi-stat-title"><i class="fas fa-inbox"></i> Заявки на подтверждение</div>
+      <div class="logi-stat-value" id="statPending">—</div>
+      <div class="logi-stat-sub">pending_logistician</div>
+    </div>
+
+    <div class="logi-stat-card">
+      <div class="logi-stat-title"><i class="fas fa-calendar-check"></i> Ближайшие поставки</div>
+      <div class="logi-stat-value">{{ upcoming_deliveries|length }}</div>
+      <div class="logi-stat-sub">в течение 7 дней</div>
+    </div>
+  </div>
+
+
+
+{% endblock %}

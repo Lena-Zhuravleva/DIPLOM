@@ -1,0 +1,360 @@
+/* ===== АДАПТИВНОСТЬ ===== */
+
+/* Планшеты (768px - 991px) */
+@media (max-width: 991px) {
+    /* Общие стили */
+    .hero-title {
+        font-size: 2.5rem;
+    }
+
+    .section-title {
+        font-size: 2rem;
+    }
+
+    .fact-stats {
+        gap: 2rem;
+    }
+
+    /* Шапка */
+    .nav-list {
+        gap: 3px;
+    }
+
+    .nav-link {
+        padding: 10px 16px;
+        font-size: 0.95rem;
+    }
+
+    /* Герой-секция */
+    .hero-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+        text-align: center;
+    }
+
+    .hero-visual {
+        height: 300px;
+        margin-top: 40px;
+    }
+
+    .visual-element {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+
+    .element-1 { left: 20px; top: 40px; }
+    .element-2 { right: 20px; top: 80px; }
+    .element-3 { left: 40px; bottom: 60px; }
+    .element-4 { right: 40px; bottom: 40px; }
+
+    /* Футер */
+    .footer-content {
+        gap: 30px;
+    }
+}
+
+/* Большие телефоны (576px - 767px) */
+@media (max-width: 767px) {
+    /* Шапка */
+    .header-inner {
+        flex-direction: column;
+        gap: 1.25rem;
+        padding: 1.25rem 0;
+    }
+
+    .main-nav {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .nav-list {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 5px;
+    }
+
+    .user-area {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Герой-секция */
+    .hero-section {
+        padding: 60px 0;
+    }
+
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.125rem;
+        margin-left: auto;
+        margin-right: auto;
+        text-align: center;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .hero-visual {
+        height: 250px;
+    }
+
+    .visual-element {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+
+    /* Возможности */
+    .capabilities-grid {
+        grid-template-columns: 1fr;
+    }
+
+    /* Футер */
+    .footer-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .footer-logo {
+        justify-content: center;
+    }
+
+    .footer-section:first-child {
+        align-items: center;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+        gap: 15px;
+    }
+
+    /* Социальные кнопки */
+    .social-links {
+        justify-content: center;
+    }
+
+    .social-link {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+
+    /* Уведомления */
+    .notification {
+        padding: 0.75rem 1rem;
+        margin: 0 15px 1rem;
+    }
+
+    /* Страница входа */
+    .login-card {
+        padding: 2rem 1.5rem;
+    }
+
+    .login-card h2 {
+        font-size: 1.75rem;
+    }
+
+    .demo-accounts {
+        padding: 1.25rem;
+    }
+
+    .account-item {
+        padding: 10px 14px;
+        font-size: 0.9rem;
+    }
+
+    /* Карточки фактов */
+    .fact-card {
+        padding: 2rem;
+    }
+}
+
+/* Маленькие телефоны (до 575px) */
+@media (max-width: 575px) {
+    .container {
+        padding: 0 15px;
+    }
+
+    /* Герой-секция */
+    .hero-title {
+        font-size: 1.75rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+        padding: 0 10px;
+    }
+
+    .hero-visual {
+        display: none; /* Скрываем анимированные иконки на очень маленьких экранах */
+    }
+
+    /* Карточки фактов */
+    .fact-card {
+        padding: 1.5rem;
+    }
+
+    .fact-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+
+    .fact-title {
+        font-size: 1.5rem;
+    }
+
+    .fact-stats {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .stat-number {
+        font-size: 2rem;
+    }
+
+    /* Карточки возможностей */
+    .capability-card {
+        padding: 1.5rem;
+    }
+
+    .section-title {
+        font-size: 1.75rem;
+    }
+
+    /* Логотипы */
+    .logo-image, .footer-logo-image {
+        height: 40px;
+        max-width: 40px;
+    }
+
+    .logo-main, .logo-accent {
+        font-size: 1.25rem;
+    }
+
+    .footer-logo-text .logo-main,
+    .footer-logo-text .logo-accent {
+        font-size: 18px;
+    }
+
+    /* Навигация */
+    .nav-link {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
+    .nav-link span {
+        display: none; /* Скрываем текст, оставляем только иконки */
+    }
+
+    .nav-link i {
+        font-size: 1.25rem;
+        margin-right: 0;
+    }
+
+    /* Страница входа */
+    .login-card {
+        padding: 1.75rem 1.25rem;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    }
+
+    .login-card h2 {
+        font-size: 1.5rem;
+    }
+
+    .login-subtitle {
+        font-size: 1rem;
+    }
+
+    .btn-block {
+        padding: 14px;
+    }
+
+    .form-input {
+        padding: 12px 14px;
+    }
+
+    /* Кнопки */
+    .btn {
+        padding: 14px 20px;
+        font-size: 0.95rem;
+    }
+
+    /* CTA секция */
+    .cta-title {
+        font-size: 2rem;
+    }
+
+    .cta-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .cta-actions .btn {
+        width: 100%;
+        max-width: 280px;
+    }
+
+    /* Футер */
+    .footer-legal {
+        flex-direction: column;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .footer-legal a:not(:last-child)::after {
+        display: none; /* Убираем разделитель на мобильных */
+    }
+
+    .social-link {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+}
+
+/* Очень маленькие экраны (до 360px) */
+@media (max-width: 360px) {
+    .hero-title {
+        font-size: 1.5rem;
+    }
+
+    .btn {
+        padding: 12px 16px;
+    }
+
+    .nav-link {
+        padding: 6px 10px;
+    }
+
+    .logo-image, .footer-logo-image {
+        height: 35px;
+        max-width: 35px;
+    }
+
+    .logo-text {
+        font-size: 0.9rem;
+    }
+}
+
+/* на совсем узких экранах уменьшаем отступы */
+@media (max-width: 768px) {
+  .data-table thead th,
+  .data-table td {
+    padding: 10px 10px;
+    font-size: 13px;
+  }
+}

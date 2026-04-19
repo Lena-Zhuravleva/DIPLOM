@@ -1,0 +1,320 @@
+/* ===== ГЕРОЙ СЕКЦИЯ ===== */
+.hero-section {
+    position: relative;
+    padding: 100px 0;
+    background:
+        linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.3)),
+        url('../images/photo2.png') center/cover no-repeat;
+    color: white;
+    overflow: hidden;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6); /* Затемнение для лучшей читаемости текста */
+    opacity: 0.6;
+    z-index: 0;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+}
+
+.hero-highlight {
+    display: block;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.hero-title {
+    font-size: 3rem;
+    line-height: 1.2;
+    margin-bottom: 1.5rem;
+    font-weight: 900;
+    text-align: left;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    margin-bottom: 2.5rem;
+    opacity: 0.9;
+    line-height: 1.6;
+    max-width: 600px;
+    margin-left: 0;
+    margin-right: 0;
+    text-align: left;
+}
+
+.hero-actions {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+}
+
+/* ===== СЕКЦИЯ ФАКТОВ ===== */
+.fact-section {
+    padding: 80px 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
+.fact-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 3rem;
+    text-align: center;
+    box-shadow: var(--box-shadow);
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.fact-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 2rem;
+    margin: 0 auto 2rem;
+}
+
+.fact-title {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.fact-text {
+    font-size: 1.125rem;
+    line-height: 1.7;
+    color: var(--gray-color);
+    margin-bottom: 2rem;
+}
+.fact-highlight {
+    font-size: 1.125rem;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.fact-stats {
+    display: flex;
+    justify-content: center;
+    gap: 3rem;
+    flex-wrap: wrap;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.stat-number {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.stat-label {
+    font-size: 0.875rem;
+    color: var(--gray-color);
+    margin-top: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ===== СЕКЦИЯ ВОЗМОЖНОСТЕЙ ===== */
+.capabilities-section {
+    padding: 100px 0;
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 3rem;
+}
+
+.section-title {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.section-subtitle {
+    font-size: 1.125rem;
+    color: var(--gray-color);
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.capabilities-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.capability-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 2.5rem;
+    text-align: center;
+    box-shadow: var(--box-shadow);
+}
+
+.capability-icon {
+    width: 70px;
+    height: 70px;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.75rem;
+    margin: 0 auto 1.5rem;
+}
+
+.capability-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.capability-description {
+    color: var(--gray-color);
+    margin-bottom: 1.5rem;
+}
+
+.capability-features {
+    list-style: none;
+    text-align: left;
+}
+
+.capability-features li {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+/* ===== АНИМИРОВАННЫЕ ИКОНКИ ДЛЯ ГЕРОЯ ===== */
+.hero-visual {
+    position: relative;
+    height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.visual-element {
+    position: absolute;
+    width: 80px;
+    height: 80px;
+    background: white;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    color: var(--primary-color);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    animation: float 6s ease-in-out infinite;
+}
+
+.visual-element:hover {
+    transform: scale(1.1);
+    box-shadow: 0 15px 40px rgba(211, 47, 47, 0.2);
+    z-index: 2;
+}
+
+/* Позиционирование иконок */
+.element-1 {
+    top: 20px;
+    left: 50px;
+    animation-delay: 0s;
+    background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+}
+
+.element-2 {
+    top: 120px;
+    right: 30px;
+    animation-delay: 1s;
+    background: linear-gradient(135deg, #a1c4fd, #c2e9fb);
+}
+
+.element-3 {
+    bottom: 80px;
+    left: 80px;
+    animation-delay: 2s;
+    background: linear-gradient(135deg, #84fab0, #8fd3f4);
+}
+
+.element-4 {
+    bottom: 20px;
+    right: 60px;
+    animation-delay: 3s;
+    background: linear-gradient(135deg, #fbc2eb, #a6c1ee);
+}
+
+/* Анимация плавания */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    25% {
+        transform: translateY(-20px) rotate(5deg);
+    }
+    50% {
+        transform: translateY(0) rotate(0deg);
+    }
+    75% {
+        transform: translateY(-10px) rotate(-5deg);
+    }
+}
+
+/* На мобильных - скрываем или уменьшаем */
+@media (max-width: 991px) {
+    .hero-visual {
+        height: 300px;
+        margin-top: 40px;
+    }
+
+    .visual-element {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+
+    .element-1 { left: 20px; top: 40px; }
+    .element-2 { right: 20px; top: 80px; }
+    .element-3 { left: 40px; bottom: 60px; }
+    .element-4 { right: 40px; bottom: 40px; }
+}
+
+@media (max-width: 767px) {
+    .hero-visual {
+        height: 250px;
+    }
+
+    .visual-element {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+    }
+
+    /* На очень маленьких экранах можно скрыть */
+    @media (max-width: 480px) {
+        .hero-visual {
+            display: none; /* Или оставляем, но делаем меньше */
+        }
+    }
+}

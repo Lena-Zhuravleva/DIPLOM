@@ -1,0 +1,66 @@
+{% extends "layouts/app.html" %}
+{% block title %}Дашборд логиста - Logistic System{% endblock %}
+
+{% block content %}
+<div class="container logi-page">
+
+  <!-- Верх -->
+  <div class="logi-topbar">
+    <div>
+      <h1 class="logi-title">
+        <i class="fas fa-tachometer-alt"></i> Дашборд логиста
+      </h1>
+      <div class="logi-welcome">
+        Добро пожаловать, <strong>{{ session.full_name }}</strong>!
+      </div>
+    </div>
+  </div>
+    <!-- Материалы -->
+    <div class="logi-panel">
+      <div class="logi-panel-head">
+        <h3 class="logi-panel-title"><i class="fas fa-layer-group"></i> Материалы (warning/critical)</h3>
+        <button type="button" class="btn btn-primary" id="refreshAllBtn">
+          <i class="fas fa-rotate"></i> Обновить
+        </button>
+      </div>
+
+      <div class="logi-table-wrap">
+        <table class="logi-table">
+          <thead>
+            <tr>
+              <th>Материал</th>
+              <th>Остаток</th>
+              <th>Мин.</th>
+              <th>Статус</th>
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for m in critical_materials %}
+            <tr>
+              <td class="td-strong">{{ m.name }}</td>
+              <td>{{ m.current_stock }} {{ m.unit }}</td>
+              <td>{{ m.min_stock_level }} {{ m.unit }}</td>
+              <td>
+                {% if m.status == 'critical' %}
+                  <span class="badge badge-danger">CRITICAL</span>
+                {% else %}
+                  <span class="badge badge-warning">WARNING</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+            {% if critical_materials|length == 0 %}
+            <tr><td colspan="5" class="logi-empty">Нет проблемных материалов 🎉</td></tr>
+            {% endif %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+
+
+{% endblock %}

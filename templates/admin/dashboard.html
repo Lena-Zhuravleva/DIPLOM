@@ -1,0 +1,58 @@
+{% extends "layouts/app.html" %}
+{% block title %}Панель администратора{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <div class="dashboard-header">
+    <h1><i class="fas fa-crown"></i> Панель администратора</h1>
+    <p class="dashboard-subtitle">Управление пользователями и системой</p>
+  </div>
+
+  <div class="dashboard-content">
+    <!-- ===== Статистика ===== -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #3498db, #2980b9);">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-info">
+          <h3>{{ users|length }}</h3>
+          <p>Пользователей</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+          <i class="fas fa-boxes"></i>
+        </div>
+        <div class="stat-info">
+          <h3>{{ materials|length }}</h3>
+          <p>Материалов</p>
+        </div>
+      </div>
+
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #f1c40f, #f39c12);">
+          <i class="fas fa-user-cog"></i>
+        </div>
+        <div class="stat-info">
+          <h3>{{ suppliers|length }}</h3>
+          <p>Поставщиков</p>
+        </div>
+      </div>
+
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="stat-info">
+          <h3>{{ materials|selectattr('status', 'equalto', 'critical')|list|length }}</h3>
+          <p>Критических материалов</p>
+        </div>
+      </div>
+    </div>
+
+</div>
+{% endblock %}

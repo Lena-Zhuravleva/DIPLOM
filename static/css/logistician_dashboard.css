@@ -1,0 +1,241 @@
+/* ===== Logistician Dashboard (no inline styles) ===== */
+
+.logi-page {
+  padding: 24px 0;
+}
+
+.logi-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.logi-title {
+  margin: 0;
+}
+
+.logi-welcome {
+  opacity: 0.85;
+  margin-top: 6px;
+}
+
+.logi-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ===== Stats cards ===== */
+.logi-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.logi-stat-card {
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+}
+
+.logi-stat-title {
+  opacity: .8;
+}
+
+.logi-stat-value {
+  font-size: 28px;
+  font-weight: 800;
+  margin-top: 6px;
+}
+
+.logi-stat-sub {
+  opacity: .7;
+  font-size: 13px;
+}
+
+/* ===== Main grid ===== */
+.logi-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 18px;
+  margin-top: 18px;
+  align-items: start;
+}
+
+.logi-left {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ===== Panels ===== */
+.logi-panel {
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+}
+
+.logi-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.logi-panel-title {
+  margin: 0;
+}
+
+.logi-panel-hint {
+  opacity: .75;
+  font-size: 13px;
+}
+
+/* ===== Tables ===== */
+.logi-table-wrap {
+  margin-top: 12px;
+  overflow: auto;
+}
+
+.logi-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.logi-table.materials {
+  min-width: 560px;
+}
+
+.logi-table.requests {
+  min-width: 720px;
+}
+
+.logi-table.calendar {
+  min-width: 520px;
+}
+
+.logi-table thead th {
+  text-align: left;
+  opacity: .75;
+  padding: 10px;
+  border-bottom: 1px solid rgba(0,0,0,.08);
+}
+
+.logi-table tbody td {
+  padding: 10px;
+  border-bottom: 1px solid rgba(0,0,0,.06);
+}
+
+.logi-td-strong {
+  font-weight: 700;
+}
+
+.logi-td-right {
+  text-align: right;
+}
+
+.logi-empty {
+  padding: 12px;
+  opacity: .75;
+}
+
+.logi-loading {
+  padding: 12px;
+  opacity: .75;
+}
+
+.logi-error {
+  padding: 12px;
+  color: var(--danger-color);
+}
+
+/* ===== Badges ===== */
+.badge-pill {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+
+.badge-critical {
+  background: rgba(231,76,60,.12);
+  color: #c0392b;
+}
+
+.badge-warning {
+  background: rgba(241,196,15,.16);
+  color: #8e6b00;
+}
+
+.badge-mini {
+  padding: 3px 8px;
+}
+
+/* ===== Calendar controls ===== */
+.logi-calendar-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.logi-date {
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(0,0,0,.18);
+}
+
+.logi-legend {
+  margin-top: 10px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  opacity: .8;
+  font-size: 13px;
+}
+
+.logi-legend b {
+  font-weight: 800;
+}
+
+.logi-slot-title {
+  font-weight: 800;
+}
+
+.logi-slot-sub {
+  opacity: .85;
+  font-size: 13px;
+}
+
+.logi-slot-sub.muted {
+  opacity: .75;
+}
+
+/* ===== Modals (if your modal.css exists, this is just a safe base) ===== */
+.modal .modal-body .hint {
+  opacity: .7;
+  font-size: 13px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 991px) {
+  .logi-stats {
+    grid-template-columns: 1fr;
+  }
+  .logi-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 575px) {
+  .logi-page {
+    padding: 16px 0;
+  }
+}

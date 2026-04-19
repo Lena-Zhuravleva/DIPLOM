@@ -1,0 +1,91 @@
+.modal{
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 9999;
+  background: rgba(0,0,0,0.35);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal[style*="display: block"]{
+  display: flex !important;
+}
+
+.modal .modal-content{
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+  overflow: hidden;
+}
+
+.modal-body{
+  padding: 28px 28px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-header{
+  position: relative;
+  padding: 18px 24px;
+  text-align: center; /* заголовок по центру */
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.modal-header h3{
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+
+.modal-close{
+  position: absolute;
+  top: 10px;
+  right: 10px;
+
+  width: 36px;
+  height: 36px;
+
+  border: none;
+  background: rgba(0,0,0,0.04);
+  border-radius: 999px;
+
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+
+.modal-close:hover{
+  background: rgba(0,0,0,0.1);
+  transform: rotate(45deg);
+}
+
+.modal-close:active{
+  transform: rotate(90deg) scale(0.95);
+}
+.modal-footer{
+  display: flex;
+  justify-content: center;   /* центр */
+  gap: 12px;
+  padding: 16px 24px 22px;   /* чтобы не липли к краям */
+  border-top: 1px solid rgba(0,0,0,0.06);
+}
+
+.modal-footer .btn{
+  min-width: 140px;          /* чтобы выглядели ровно */
+}
+
+

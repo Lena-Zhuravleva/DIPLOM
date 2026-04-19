@@ -1,0 +1,247 @@
+/* ===== ШАПКА ===== */
+.main-header {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+.header-inner {
+   padding: 12px 0;
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 16px;
+}
+
+/* ===== НАВИГАЦИЯ ===== */
+.main-nav {
+    flex: 1;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.nav-list {
+    display: flex;
+    list-style: none;
+    gap: 5px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    text-decoration: none;
+    color: var(--secondary-color);
+    font-weight: 600;
+    border-radius: 8px;
+    transition: var(--transition);
+}
+
+.nav-link:hover {
+    background: rgba(211, 47, 47, 0.05);
+    color: var(--primary-color);
+}
+
+.nav-link.active {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    box-shadow: 0 4px 12px rgba(211, 47, 47, 0.2);
+}
+
+/* ===== ПОЛЬЗОВАТЕЛЬСКАЯ ОБЛАСТЬ ===== */
+.user-area {
+    display: flex;
+    align-items: center;
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.user-avatar {
+    width: 42px;
+    height: 42px;
+    background: linear-gradient(135deg, var(--accent-color), #2980b9);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 700;
+    color: var(--secondary-color);
+}
+
+.user-role {
+    font-size: 12px;
+    color: var(--gray-color);
+    text-transform: capitalize;
+}
+
+/* ===== ОСНОВНОЙ КОНТЕНТ ===== */
+.main-content {
+    flex: 1;
+    padding: 2rem 0;
+}
+
+/* ===== ПОДВАЛ ===== */
+.main-footer {
+    background: var(--secondary-color);
+    color: white;
+    padding: 60px 0 30px;
+    margin-top: auto;
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 40px;
+    margin-bottom: 50px;
+}
+
+.footer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+}
+
+.footer-logo-image {
+    height: 50px;
+    width: auto;
+    max-width: 50px;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+.footer-logo-text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+}
+
+.footer-logo-text .logo-main {
+    font-size: 20px;
+    color: white;
+    font-weight: 700;
+}
+
+.footer-logo-text .logo-accent {
+    font-size: 20px;
+    color: #ff9999;
+    font-weight: 900;
+}
+
+.footer-tagline {
+    opacity: 0.8;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.footer-bottom {
+    padding-top: 30px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.footer-bottom p {
+    opacity: 0.7;
+    font-size: 14px;
+}
+/* ===== СТИЛИ ДЛЯ ССЫЛОК В ПОДВАЛЕ ===== */
+.footer-legal {
+    display: flex;
+    gap: 30px;
+}
+
+.footer-legal a {
+    color: rgba(255, 255, 255, 0.7); /* Такой же цвет как у текста */
+    text-decoration: none;
+    font-size: 14px;
+    transition: var(--transition);
+    position: relative;
+}
+
+.footer-legal a:hover {
+    color: white; /* При наведении становится белым */
+    opacity: 1;
+}
+
+/* Добавляем разделитель между ссылками (опционально) */
+.footer-legal a:not(:last-child)::after {
+    content: '•';
+    position: absolute;
+    right: -18px;
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* Альтернативный вариант с подчеркиванием при наведении */
+.footer-legal a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+.social-links {
+    display: flex;
+    flex-direction: row;
+    gap: 15px;
+    margin-top: 15px;
+}
+.social-link {
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: 2px solid white;
+    border-radius: 10px; /* Вместо 50% */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.social-link:hover {
+    background: white;
+    color: var(--secondary-color);
+    border-radius: 50%; /* При наведении становится круглой */
+}
+/* Анимация появления */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.dashboard-content > * {
+    animation: slideIn 0.3s ease-out;
+}

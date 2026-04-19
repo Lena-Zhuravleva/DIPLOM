@@ -1,0 +1,101 @@
+{% extends "layouts/app.html" %}
+{% block title %}Дашборд логиста - Logistic System{% endblock %}
+
+{% block content %}
+<div class="container logi-page">
+
+  <!-- Верх -->
+  <div class="logi-topbar">
+    <div>
+      <h1 class="logi-title">
+        <i class="fas fa-tachometer-alt"></i> Дашборд логиста
+      </h1>
+      <div class="logi-welcome">
+        Добро пожаловать, <strong>{{ session.full_name }}</strong>!
+      </div>
+    </div>
+  </div>
+    <div class="logi-grid-below">
+
+    <!-- Заявки -->
+    <div class="logi-panel">
+      <div class="logi-panel-head">
+        <h3 class="logi-panel-title"><i class="fas fa-inbox"></i> Заявки на подтверждение</h3>
+        <div class="logi-panel-hint">(pending_logistician)</div>
+      </div>
+
+      <div class="logi-table-wrap">
+        <table class="logi-table requests">
+          <thead>
+            <tr>
+              <th>Тип</th>
+              <th>Материал</th>
+              <th>Кол-во</th>
+              <th>Дата/время</th>
+              <th>Комментарий</th>
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody id="requestsTbody">
+            <tr><td colspan="6" class="logi-loading">Загрузка…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<!-- ===== МОДАЛКА: одобрить/отклонить ===== -->
+<div class="modal" id="approveModal" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Одобрение запроса</h3>
+      <button type="button" class="modal-close" data-close="approveModal">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <form id="approveForm">
+        <input type="hidden" id="requestId" name="request_id">
+
+        <div class="form-group">
+          <label for="deliveryDate">Дата поставки:</label>
+          <input type="date" id="deliveryDate" name="delivery_date" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="deliveryTime">Время поставки:</label>
+          <input type="time" id="deliveryTime" name="delivery_time" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="deliveryDuration">Длительность:</label>
+          <select id="deliveryDuration" name="duration_min" class="form-control">
+            <option value="15">15 мин</option>
+            <option value="30">30 мин</option>
+            <option value="45">45 мин</option>
+            <option value="60">60 мин</option>
+            <option value="90">90 мин</option>
+            <option value="120">120 мин</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="selectSupplier">Выберите поставщика:</label>
+          <select id="selectSupplier" name="supplier_id" class="form-control">
+            <option value="">-- Выберите поставщика --</option>
+          </select>
+        </div>
+      </form>
+
+      <div class="hint" id="approveHint"></div>
+    </div>
+
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-close="approveModal">Отмена</button>
+      <button type="button" class="btn btn-danger" id="rejectBtn">Отклонить</button>
+      <button type="button" class="btn btn-primary" id="approveBtn">Одобрить</button>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}

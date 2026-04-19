@@ -1,0 +1,198 @@
+{% extends "layouts/app.html" %}
+{% block title %}Дашборд логиста - Logistic System{% endblock %}
+
+{% block content %}
+<div class="container logi-page">
+
+  <!-- Верх -->
+  <div class="logi-topbar">
+    <div>
+      <h1 class="logi-title">
+        <i class="fas fa-tachometer-alt"></i> Дашборд логиста
+      </h1>
+      <div class="logi-welcome">
+        Добро пожаловать, <strong>{{ session.full_name }}</strong>!
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== КАЛЕНДАРЬ ===== -->
+  <section class="logi-panel logi-calendar-wide">
+    <div class="logi-panel-head">
+      <h3 class="logi-panel-title"><i class="fas fa-calendar-alt"></i> Календарь слотов (15 минут)</h3>
+
+      <div class="logi-calendar-controls">
+        <input type="date" id="calendarDate" class="form-control logi-date">
+        <button type="button" class="btn btn-secondary" id="todayBtn" title="Сегодня">
+          <i class="fas fa-bullseye"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Легенда -->
+    <div class="logi-legend">
+      <span class="lg-item"><span class="lg-dot free"></span> Свободно</span>
+      <span class="lg-item"><span class="lg-dot pending"></span> Ожидает (Request)</span>
+      <span class="lg-item"><span class="lg-dot busy"></span> Занято (Delivery)</span>
+    </div>
+
+    <div class="logi-table-wrap">
+      <table class="logi-table calendar" id="calendarTable">
+        <thead id="calendarThead"></thead>
+        <tbody id="calendarTbody">
+          <tr><td class="logi-empty">Загрузка…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Подсказка по “несколько слотов” -->
+    <div class="logi-help">
+      Чтобы занять несколько ячеек: выбираем <b>начальный слот</b> → указываем <b>длительность</b> (например 30/45/60 мин) → система блокирует нужное количество 15-мин слотов.
+    </div>
+  </section>
+
+<!-- ===== МОДАЛКА: одобрить/отклонить ===== -->
+<div class="modal" id="approveModal" style="display:none;">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3>Одобрение запроса</h3>
+      <button type="button" class="modal-close" data-close="approveModal">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <form id="approveForm">
+        <input type="hidden" id="requestId" name="request_id">
+
+        <div class="form-group">
+          <label for="deliveryDate">Дата поставки:</label>
+          <input type="date" id="deliveryDate" name="delivery_date" class="form-control" required>
+        </div>
+
+        <div class="form-group">
+          <label for="deliveryTime">Время поставки:</label>
+          <input type="time" id="deliveryTime" name="delivery_time" class="form-control" required>
+        </div>
+        <div class="form-group">
+          <label for="deliveryDuration">Длительность:</label>
+          <select id="deliveryDuration" name="duration_min" class="form-control">
+            <option value="15">15 мин</option>
+            <option value="30">30 мин</option>
+            <option value="45">45 мин</option>
+            <option value="60">60 мин</option>
+            <option value="90">90 мин</option>
+            <option value="120">120 мин</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="selectSupplier">Выберите поставщика:</label>
+          <select id="selectSupplier" name="supplier_id" class="form-control">
+            <option value="">-- Выберите поставщика --</option>
+          </select>
+        </div>
+      </form>
+
+      <div class="hint" id="approveHint"></div>
+    </div>
+
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-close="approveModal">Отмена</button>
+      <button type="button" class="btn btn-danger" id="rejectBtn">Отклонить</button>
+      <button type="button" class="btn btn-primary" id="approveBtn">Одобрить</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== МОДАЛКА: создать запись (по выделению) ===== -->
+<div class="modal" id="createModal" style="display:none;">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h3>Запись поставщика</h3>
+      <button type="button" class="modal-close" data-close="createModal">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <form id="createForm">
+        <!-- скрытые поля (заполняются из выделения) -->
+        <input type="hidden" id="cmDate">
+        <input type="hidden" id="cmTime">
+        <input type="hidden" id="cmDuration" value="15">
+        <input type="hidden" id="cmUnloadPlace">
+
+        <div class="hint" id="createHint"></div>
+
+        <div class="form-group">
+          <label>Поставщик:</label>
+          <select id="cmSupplier" class="form-control" required>
+            <option value="">— Выберите компанию —</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Материал:</label>
+          <select id="cmMaterialId" class="form-control" required>
+            <option value="">— Выберите материал —</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Количество:</label>
+          <input type="number" id="cmQuantity" class="form-control" min="1" value="1" required>
+        </div>
+
+        <div class="form-group">
+          <label>Комментарий (необязательно):</label>
+          <textarea id="cmNotes" class="form-control" rows="2"></textarea>
+        </div>
+      </form>
+
+      <div class="hint" id="createErr"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-close="createModal">Отмена</button>
+      <button type="button" class="btn btn-primary" id="createBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+<!-- ===== МОДАЛКА: факт разгрузки ===== -->
+<div class="modal" id="factModal" style="display:none;">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h3>Факт разгрузки</h3>
+      <button type="button" class="modal-close" data-close="factModal">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="factDate">
+      <input type="hidden" id="factTime">
+      <input type="hidden" id="factPlace">
+
+      <div class="form-group">
+        <label>Статус:</label>
+        <select id="factStatus" class="form-control">
+          <option value="planned">planned</option>
+          <option value="in_progress">in_progress</option>
+          <option value="done">done</option>
+          <option value="cancelled">cancelled</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Комментарий (опционально):</label>
+        <textarea id="factNotes" class="form-control" rows="3"></textarea>
+      </div>
+
+      <div class="hint" id="factErr"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-close="factModal">Отмена</button>
+      <button type="button" class="btn btn-primary" id="factSaveBtn">Сохранить факт</button>
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,106 @@
+/* ===== СТРАНИЦА ВХОДА ===== */
+.login-container {
+    min-height: 100vh; /* Занимает весь экран */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px; /* Увеличиваем отступы */
+    background:
+        linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.5)), /* Увеличиваем затемнение */
+        url('../images/photo2.png') center/cover no-repeat fixed; /* Добавляем fixed для параллакса */
+}
+
+.login-card {
+    background: white;
+    border-radius: var(--border-radius);
+    padding: 3rem;
+    width: 100%;
+    max-width: 480px;
+    box-shadow: var(--box-shadow);
+    text-align: center;
+    transition: var(--transition);
+}
+
+.login-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+}
+
+.login-card h2 {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+    color: var(--secondary-color);
+    font-weight: 900;
+}
+
+.login-subtitle {
+    color: var(--gray-color);
+    margin-bottom: 2rem;
+    font-size: 1.125rem;
+}
+
+/* ===== ФОРМА ВХОДА ===== */
+.login-form {
+    margin-bottom: 2.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--secondary-color);
+    font-size: 0.95rem;
+}
+
+.form-input {
+    width: 100%;
+    padding: 14px 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: var(--transition);
+    background: #f8fafc;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.1);
+    background: white;
+}
+
+.form-input::placeholder {
+    color: #94a3b8;
+    opacity: 0.7;
+}
+
+/* ===== КНОПКА ВХОДА ===== */
+.btn-block {
+    display: block;
+    width: 100%;
+    padding: 16px;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-top: 1rem;
+}
+
+/* ===== АНИМАЦИИ ===== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-card {
+    animation: fadeInUp 0.5s ease-out;
+}

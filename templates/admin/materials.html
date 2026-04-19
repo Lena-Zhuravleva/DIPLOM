@@ -1,0 +1,81 @@
+{% extends "layouts/app.html" %}
+{% block title %}Материалы{% endblock %}
+
+{% block content %}
+
+<!-- ===== Добавление материала ===== -->
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-plus"></i> Добавить материал</h2>
+  </div>
+
+  <div class="table-responsive">
+    <form method="POST" action="{{ url_for('materials.materials') }}" class="mb-3"
+          style="display:grid; gap:12px; grid-template-columns: 1fr 1fr;">
+
+      <input class="form-control" name="name" placeholder="Название материала" required>
+      <input class="form-control" name="category" placeholder="Категория (опц.)">
+
+      <input class="form-control" name="unit" placeholder="Единица (шт/кг/л...)" required>
+      <input class="form-control" name="min_stock_level" type="number" min="0" placeholder="Мин. запас" required>
+
+      <input class="form-control" name="current_stock" type="number" min="0"
+             placeholder="Текущий запас" style="grid-column: 1 / -1;" required>
+
+      <div style="grid-column: 1 / -1;">
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fas fa-plus"></i> Добавить материал
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Таблица материалов ===== -->
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-box-open"></i> Состояние склада</h2>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Материал</th>
+          <th>Категория</th>
+          <th class="num">Текущий запас</th>
+          <th class="num">Минимальный</th>
+          <th class="center">Статус</th>
+          <th class="center">Ед.</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for material in materials %}
+        <tr class="status-{{ material.status }}">
+          <td title="{{ material.name }}">{{ material.name }}</td>
+          <td title="{{ material.category or '' }}">{{ material.category or '—' }}</td>
+          <td class="num">{{ material.current_stock }}</td>
+          <td class="num">{{ material.min_stock_level }}</td>
+          <td class="center">
+            {% if material.status == 'critical' %}
+              <span class="status-badge status-critical">Критический</span>
+            {% elif material.status == 'warning' %}
+              <span class="status-badge status-warning">Предупреждение</span>
+            {% else %}
+              <span class="status-badge status-normal">Нормальный</span>
+            {% endif %}
+          </td>
+          <td class="center">{{ material.unit }}</td>
+        </tr>
+        {% endfor %}
+
+        {% if materials|length == 0 %}
+          <tr><td colspan="6" class="logi-empty">Материалов пока нет</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}

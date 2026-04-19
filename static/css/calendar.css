@@ -1,0 +1,100 @@
+/* ===== Calendar grid ===== */
+.logi-table.calendar{
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.logi-table.calendar th,
+.logi-table.calendar td{
+  border: 1px solid rgba(0,0,0,0.10);
+  padding: 8px;
+  vertical-align: top;
+}
+
+.logi-table.calendar th{
+  background: #fafafa;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* time column */
+.logi-table.calendar .col-time{
+  width: 80px;
+  text-align: center;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* place cells */
+.place-cell{
+  min-width: 220px;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* ===== Cell states ===== */
+.cell{
+  position: relative;
+  border-radius: 10px;
+  padding: 10px;
+  min-height: 54px;
+  border: 1px solid rgba(0,0,0,0.10);
+  background: #fff;
+}
+
+.cell.free{
+  background: #fff;
+}
+
+.cell.pending{
+  background: rgba(241, 196, 15, 0.18);
+  border-color: rgba(241, 196, 15, 0.35);
+}
+
+.cell.busy{
+  background: rgba(231, 76, 60, 0.14);
+  border-color: rgba(231, 76, 60, 0.30);
+}
+
+/* text inside cell */
+.cell-main{
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cell-line{
+  font-size: 13px;
+  line-height: 1.25;
+  opacity: .9;
+}
+
+.cell-line.strong{
+  font-weight: 800;
+  opacity: 1;
+}
+
+/* Fact indicator dot */
+.fact-dot{
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: rgba(52, 152, 219, 0.95);
+  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.15);
+}
+
+/* selection highlight */
+.no-select{ user-select: none; }
+
+.place-cell.is-selected{
+  outline: 2px solid rgba(52, 152, 219, 0.85);
+  outline-offset: -2px;
+  background: rgba(52, 152, 219, 0.06);
+}
+
+/* header subtitle */
+.th-title{ font-weight: 800; }
+.th-sub{ font-size: 12px; opacity: .6; margin-top: 2px; }

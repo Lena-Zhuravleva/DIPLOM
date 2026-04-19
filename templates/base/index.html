@@ -1,0 +1,158 @@
+{% extends "base/base.html" %}
+
+{% block title %}Главная - Logistic System{% endblock %}
+
+{% block content %}
+    <!-- Герой-секция с фоновым изображением -->
+    <section class="hero-section">
+        <div class="hero-overlay"></div>
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1 class="hero-title">
+                        <span class="hero-highlight">Умная логистика</span>
+                        для современного бизнеса
+                    </h1>
+                    <p class="hero-subtitle">
+                        Автоматизируйте процессы поставок, управляйте складом и оптимизируйте цепочки поставок
+                        с помощью искусственного интеллекта
+                    </p>
+                    <div class="hero-actions">
+                        {% if not session.get('user_id') %}
+                            <a href="/login" class="btn btn-primary btn-large">
+                                <i class="fas fa-rocket"></i>
+                                Начать использовать
+                            </a>
+                        {% else %}
+                            <a href="/dashboard" class="btn btn-primary btn-large">
+                                <i class="fas fa-tachometer-alt"></i>
+                                Перейти в дашборд
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="hero-visual">
+                    <!-- Анимированные иконки -->
+                    <div class="visual-element element-1">
+                        <i class="fas fa-truck"></i>
+                    </div>
+                    <div class="visual-element element-2">
+                        <i class="fas fa-warehouse"></i>
+                    </div>
+                    <div class="visual-element element-3">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="visual-element element-4">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Секция с интересным фактом -->
+    <section class="fact-section">
+        <div class="container">
+            <div class="fact-card">
+                <div class="fact-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <div class="fact-content">
+                    <h2 class="fact-title">Интересные факты</h2>
+                    <p class="fact-text">
+                        IHP Appliances входит в состав компании
+                        <span class="fact-highlight">Arçelik</span>,
+                        которая является мировым производителем бытовой техники.
+                        IHP Appliances это крупный завод в Российской Федерации,
+                        с полным циклом производства <span class="fact-highlight">холодильников,
+                        морозильников и стиральных машин</span>.
+                        В России компания выпускает холодильники и стиральные машины
+                        под брендами
+                        <span class="fact-highlight">Indesit, Hotpoint, Stinol</span>.
+                        Завод холодильников работает
+                        <span class="fact-highlight"> с 1993 года</span>,
+                        а завод Стиральных машин
+                        <span class="fact-highlight">с 2004</span>.
+                    </p>
+                    <div class="fact-stats">
+                        <div class="stat-item">
+                            <span class="stat-number">30 ЛЕТ</span>
+                            <span class="stat-label">Производство холодильников</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">18 ЛЕТ</span>
+                            <span class="stat-label">Производство стиральных машин</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-number">БОЛЕЕ 2 ТЫС.</span>
+                            <span class="stat-label">Сотрудников</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Секция возможностей -->
+    <section class="capabilities-section">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">Мощные возможности для каждой роли</h2>
+                <p class="section-subtitle">Индивидуальные решения для каждого участника логистической цепочки</p>
+            </div>
+
+            <div class="capabilities-grid">
+                <!-- Для логистов -->
+                <div class="capability-card">
+                    <div class="capability-icon" style="background: linear-gradient(135deg, #3498db, #2c3e50);">
+                        <i class="fas fa-route"></i>
+                    </div>
+                    <h3 class="capability-title">Для логистов</h3>
+                    <p class="capability-description">
+                        Умное планирование маршрутов, контроль поставок в реальном времени,
+                        автоматическое распределение заказов
+                    </p>
+                    <ul class="capability-features">
+                        <li><i class="fas fa-check" style="color: #008000"></i> AI-оптимизация маршрутов</li>
+                        <li><i class="fas fa-check" style="color: #008000"></i> Контроль KPI</li>
+                        <li><i class="fas fa-check" style="color: #008000"></i> Прогнозирование спроса</li>
+                    </ul>
+                </div>
+
+                <!-- Для поставщиков -->
+                <div class="capability-card">
+                    <div class="capability-icon" style="background: linear-gradient(135deg, #2ecc71, #27ae60);">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <h3 class="capability-title">Для поставщиков</h3>
+                    <p class="capability-description">
+                        Онлайн-бронирование слотов поставки, управление заказами,
+                        прозрачная система рейтингов и оплат
+                    </p>
+                    <ul class="capability-features">
+                        <li><i class="fas fa-check " style="color: #008000"></i> Удобное расписание</li>
+                        <li><i class="fas fa-check" style="color: #008000"></i> Прямые заказы</li>
+                        <li><i class="fas fa-check" style="color: #008000"></i> Рейтинговая система</li>
+                    </ul>
+                </div>
+
+                <!-- Для складов -->
+                <div class="capability-card">
+                    <div class="capability-icon" style="background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                        <i class="fas fa-warehouse"></i>
+                    </div>
+                    <h3 class="capability-title">Для складов</h3>
+                    <p class="capability-description">
+                        Полный контроль остатков, автоматические заявки на пополнение,
+                        оптимизация складских процессов
+                    </p>
+                    <ul class="capability-features">
+                        <li><i class="fas fa-check" style="color: #008000"></i> Инвентаризация в реальном времени</li>
+                        <li><i class="fas fa-check" style="color: #008000"></i> Автоматические заказы</li>
+                        <li><i class="fas fa-check" style="color: #008000"></i> Аналитика расходов</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

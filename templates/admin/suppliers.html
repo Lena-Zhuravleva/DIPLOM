@@ -1,0 +1,127 @@
+{% extends "layouts/app.html" %}
+{% block title %}Поставщики{% endblock %}
+
+{% block content %}
+
+<!-- ===== Добавление поставщика ===== -->
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-truck"></i> Поставщики</h2>
+  </div>
+
+  <div class="table-responsive">
+    <form method="POST" action="/admin/suppliers/create" class="mb-3"
+          style="display:grid; gap:12px; grid-template-columns: 1fr 1fr;">
+
+      <input class="form-control" name="company_name" placeholder="Название компании" required>
+
+      <select class="form-control" name="delivery_zone">
+        <option value="local">local</option>
+        <option value="regional">regional</option>
+        <option value="international">international</option>
+      </select>
+
+      <input class="form-control" name="contact_person" placeholder="Контактное лицо">
+      <input class="form-control" name="delivery_time_days" type="number" min="1" value="1" placeholder="Срок (дней)">
+
+      <input class="form-control" name="specialization" placeholder="Специализация (опц.)">
+      <input class="form-control" name="address" placeholder="Адрес (опц.)">
+
+      <div style="grid-column: 1 / -1;">
+        <button type="submit" class="btn btn-primary btn-block">
+          <i class="fas fa-plus"></i> Добавить поставщика
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Список поставщиков ===== -->
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-list"></i> Управление поставщиками</h2>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th class="num">ID</th>
+          <th>Компания</th>
+          <th class="center">Зона</th>
+          <th>Контакт</th>
+          <th class="num">Срок</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for s in suppliers %}
+        <tr>
+          <td class="num">{{ s.id }}</td>
+          <td title="{{ s.company_name }}">{{ s.company_name }}</td>
+          <td class="center">{{ s.delivery_zone }}</td>
+          <td title="{{ s.contact_person or '' }}">{{ s.contact_person or '—' }}</td>
+          <td class="num">{{ s.delivery_time_days }} дн.</td>
+        </tr>
+        {% endfor %}
+
+        {% if suppliers|length == 0 %}
+          <tr><td colspan="5" class="logi-empty">Поставщиков пока нет</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ===== Привязка материалов к поставщику ===== -->
+<div class="card">
+  <div class="card-header">
+    <h2><i class="fas fa-link"></i> Материалы поставщика</h2>
+  </div>
+
+  <div class="table-responsive">
+    <form method="POST" action="/admin/suppliers/materials/save"
+          style="display:flex; flex-direction:column; gap:14px;">
+
+      <div class="form-group">
+        <label class="form-label">Выберите поставщика:</label>
+        <select class="form-control" name="supplier_id" required>
+          <option value="">— Выберите —</option>
+          {% for s in suppliers %}
+            <option value="{{ s.id }}">{{ s.company_name }}</option>
+          {% endfor %}
+        </select>
+        <div style="font-size:12px; opacity:.7; margin-top:6px;">
+          Отметь материалы ниже и нажми “Сохранить”.
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Материалы:</label>
+
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          {% for m in materials %}
+          <label style="display:flex; gap:10px; align-items:center; padding:10px; border:1px solid rgba(0,0,0,0.08); border-radius:10px;">
+            <input type="checkbox" name="material_ids" value="{{ m.id }}">
+            <div>
+              <div style="font-weight:700;">{{ m.name }}</div>
+              <div style="font-size:12px; opacity:.7;">
+                {{ m.unit }}{% if m.category %} • {{ m.category }}{% endif %}
+              </div>
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <button class="btn btn-primary" type="submit">
+          <i class="fas fa-save"></i> Сохранить материалы поставщика
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+{% endblock %}

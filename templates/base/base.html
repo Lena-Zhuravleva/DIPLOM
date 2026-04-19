@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link href="https://fonts.googleapis.com/css?family=Lato:100,300,400,700,900" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Базовые стили -->
+  <link href="{{ url_for('static', filename='css/base.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/layout.css') }}" rel="stylesheet">
+  <link href="{{ url_for('static', filename='css/components.css') }}" rel="stylesheet">
+
+  <!-- Стили для конкретных страниц -->
+  {% if request.endpoint and request.endpoint.endswith('login') %}
+    <link href="{{ url_for('static', filename='css/login.css') }}" rel="stylesheet">
+  {% elif request.endpoint and request.endpoint.endswith('register') %}
+    <link href="{{ url_for('static', filename='css/register.css') }}" rel="stylesheet">
+  {% elif request.endpoint and request.endpoint.endswith('home') %}
+    <link href="{{ url_for('static', filename='css/home.css') }}" rel="stylesheet">
+  {% elif request.path in ['/', '/about', '/features'] %}
+    <link href="{{ url_for('static', filename='css/public.css') }}" rel="stylesheet">
+  {% endif %}
+
+
+
+  <!-- Стили для логиста: подключаем по роли (работает даже если endpoint = dashboard) -->
+  {% if session.get('role') == 'logistician' %}
+    <link href="{{ url_for('static', filename='css/logistician_dashboard.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/stats.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/materials.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/requests.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/calendar.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/actions.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/modal.css') }}" rel="stylesheet">
+  {% endif %}
+
+  <!-- Адаптивность -->
+  <link href="{{ url_for('static', filename='css/responsive.css') }}" rel="stylesheet">
+
+  <title>{% block title %}Logistic System{% endblock %}</title>
+</head>
+
+<body>
+  <!-- Шапка -->
+  <header class="main-header">
+    <div class="container">
+      <div class="header-inner">
+
+        <!-- Логотип -->
+        <div class="logo-area">
+          {% include "base/_brand.html" %}
+        </div>
+
+
+        <!-- Навигация -->
+        <nav class="main-nav">
+          <ul class="nav-list">
+          <li class="nav-item">
+            <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+              <i class="fas fa-home"></i>
+              <span>Главная</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="/about" class="nav-link">
+              <i class="fas fa-info-circle"></i>
+              <span>О системе</span>
+            </a>
+          </li>
+
+          <li class="nav-item">
+            <a href="/features" class="nav-link">
+              <i class="fas fa-star"></i>
+              <span>Возможности</span>
+            </a>
+          </li>
+
+          {% if not session.get('user_id') %}
+            <li class="nav-item">
+              <a href="/login" class="nav-link">
+                <i class="fas fa-sign-in-alt"></i>
+                <span>Войти</span>
+              </a>
+            </li>
+          {% else %}
+            <li class="nav-item">
+              <a href="/logout" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Выйти</span>
+              </a>
+            </li>
+          {% endif %}
+        </ul>
+
+        </nav>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Уведомления -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="notifications-container">
+        {% for category, message in messages %}
+          <div class="notification notification-{{ category }}">
+            <div class="notification-content">
+              {% if category == 'success' %}
+                <i class="fas fa-check-circle"></i>
+              {% elif category == 'error' %}
+                <i class="fas fa-exclamation-circle"></i>
+              {% else %}
+                <i class="fas fa-info-circle"></i>
+              {% endif %}
+              <span>{{ message }}</span>
+            </div>
+            <button class="notification-close" type="button">&times;</button>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- Основной контент -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Подвал -->
+  <footer class="main-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <div class="footer-logo">
+            <img src="{{ url_for('static', filename='images/photo1.png') }}"
+                 alt="Логотип"
+                 class="footer-logo-image">
+            <div class="footer-logo-text">
+              <span class="logo-main">Logistic</span>
+              <span class="logo-accent">System</span>
+            </div>
+          </div>
+
+          <p class="footer-tagline">Умная логистика для эффективного бизнеса</p>
+
+          <div class="social-links">
+            <a href="#" class="social-link"><i class="fab fa-telegram"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-whatsapp"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-vk"></i></a>
+          </div>
+        </div>
+
+        <div class="footer-section">
+          <h4 class="footer-title">Контакты</h4>
+          <ul class="footer-links">
+            <li><i class="fas fa-envelope"></i> info@logisticsystem.ru</li>
+            <li><i class="fas fa-phone"></i> +7 (4742) 42-47-04</li>
+            <li><i class="fas fa-map-marker-alt"></i> Липецк, пл. Металлургов, 2</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 Logistic System. Все права защищены.</p>
+        <div class="footer-legal">
+          <a href="/privacy">Конфиденциальность</a>
+          <a href="/terms">Условия использования</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Скрипт уведомлений -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const closeButtons = document.querySelectorAll('.notification-close');
+      closeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          this.parentElement.style.opacity = '0';
+          setTimeout(() => this.parentElement.remove(), 300);
+        });
+      });
+
+      setTimeout(() => {
+        document.querySelectorAll('.notification').forEach(notification => {
+          notification.style.opacity = '0';
+          setTimeout(() => notification.remove(), 300);
+        });
+      }, 5000);
+    });
+  </script>
+
+  <!-- JS логиста: подключаем по роли и только на /dashboard -->
+  {% if session.get('role') == 'logistician' and request.path.startswith('/dashboard') %}
+    <script src="{{ url_for('static', filename='js/logistician_dashboard.js') }}"></script>
+  {% endif %}
+
+</body>
+</html>
