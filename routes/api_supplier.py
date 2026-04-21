@@ -87,51 +87,6 @@ def supplier_materials():
     })
 
 
-@api_supplier_bp.post('/book')
-@role_required('supplier')
-def supplier_book():
-    supplier = Supplier.query.filter_by(user_id=session['user_id']).first()
-    if not supplier:
-        return jsonify({'success': False, 'error': 'Supplier not found'}), 404
-
-    data = request.json or {}
-
-    try:
-        material_id = int(data.get('material_id'))
-        quantity = int(data.get('quantity') or 0)
-        requested_date = datetime.date.fromisoformat(data.get('requested_date'))
-        requested_time_slot = datetime.time.fromisoformat(data.get('requested_time_slot'))
-        unload_place = data.get('unload_place')
-        duration_min = int(data.get('duration_min') or 15)
-        notes = data.get('notes')
-
-        if quantity <= 0:
-            return jsonify({'success': False, 'error': 'quantity must be > 0'}), 400
-        if not unload_place:
-            return jsonify({'success': False, 'error': 'unload_place is required'}), 400
-
-    except Exception:
-        return jsonify({'success': False, 'error': 'Некорректные данные'}), 400
-
-    req = Request(
-        type='supplier_booking',
-        material_id=material_id,
-        quantity=quantity,
-        supplier_id=supplier.id,
-        requested_date=requested_date,
-        requested_time_slot=requested_time_slot,
-        unload_place=unload_place,
-        duration_min=duration_min,
-        created_by=session['user_id'],
-        status='pending_logistician',
-        notes=notes
-    )
-
-    db.session.add(req)
-    db.session.commit()
-
-    return jsonify({'success': True, 'request_id': req.id})
-
 @api_supplier_bp.get('/requests')
 @role_required('supplier')
 def supplier_requests():
@@ -153,67 +108,13 @@ def supplier_requests():
             'requested_date': r.requested_date.isoformat() if r.requested_date else None,
             'requested_time_slot': r.requested_time_slot.strftime('%H:%M') if r.requested_time_slot else None,
             'unload_place': r.unload_place,
+            'duration_min': r.duration_min,
             'status': r.status,
+            'notes': r.notes,
             'created_at': r.created_at.isoformat() if r.created_at else None
         } for r in reqs]
     })
-# Подтвердить слот
-@api_supplier_bp.post('/requests/<int:req_id>/confirm')
-@role_required('supplier')
-def supplier_confirm_request(req_id):
-    supplier = Supplier.query.filter_by(user_id=session['user_id']).first()
-    if not supplier:
-        return jsonify({'success': False, 'error': 'Supplier not found'}), 404
 
-    r = Request.query.get_or_404(req_id)
-
-    if r.supplier_id != supplier.id:
-        return jsonify({'success': False, 'error': 'Нет доступа к заявке'}), 403
-
-    if r.status != 'pending_supplier':
-        return jsonify({'success': False, 'error': 'Заявка уже обработана'}), 400
-
-    data = request.json or {}
-
-    try:
-        delivery_date = datetime.date.fromisoformat(data.get('delivery_date'))
-        delivery_time = datetime.time.fromisoformat(data.get('delivery_time'))
-    except Exception:
-        return jsonify({'success': False, 'error': 'Некорректные дата или время'}), 400
-
-    unload_place = r.unload_place
-    duration_min = int(r.duration_min or 15)
-
-    deliveries = Delivery.query.filter_by(date=delivery_date, unload_place=unload_place).all()
-    slot_min = time_to_minutes(delivery_time)
-
-    for d in deliveries:
-        d_start = time_to_minutes(d.time_slot)
-        d_dur = int(d.duration_min or 15)
-        if overlaps(d_start, d_dur, slot_min):
-            return jsonify({'success': False, 'error': 'Слот уже занят'}), 409
-
-    delivery = Delivery(
-        date=delivery_date,
-        time_slot=delivery_time,
-        supplier_id=r.supplier_id,
-        material_id=r.material_id,
-        quantity=r.quantity or 0,
-        status='planned',
-        created_by=session['user_id'],
-        unload_place=unload_place,
-        duration_min=duration_min,
-        notes=r.notes
-    )
-
-    r.requested_date = delivery_date
-    r.requested_time_slot = delivery_time
-    r.status = 'confirmed_supplier'
-
-    db.session.add(delivery)
-    db.session.commit()
-
-    return jsonify({'success': True, 'delivery_id': delivery.id})
 # Запросить перенос
 @api_supplier_bp.post('/requests/<int:req_id>/reschedule')
 @role_required('supplier')
@@ -252,6 +153,105 @@ def supplier_reject_request(req_id):
         return jsonify({'success': False, 'error': 'Заявка уже обработана'}), 400
 
     r.status = 'rejected_supplier'
+    db.session.commit()
+
+    return jsonify({'success': True})
+
+# Отказ, согласие, другое время поставщика
+@api_supplier_bp.route('/requests/<int:req_id>/confirm', methods=['POST'])
+@role_required('supplier')
+def supplier_confirm(req_id):
+    supplier = Supplier.query.filter_by(user_id=session['user_id']).first()
+    if not supplier:
+        return jsonify({'success': False, 'error': 'Supplier not found'}), 404
+
+    r = Request.query.get_or_404(req_id)
+
+    if r.supplier_id != supplier.id:
+        return jsonify({'success': False, 'error': 'Нет доступа к заявке'}), 403
+
+    if r.status not in ['pending_supplier', 'reschedule_requested']:
+        return jsonify({'success': False, 'error': 'Заявка уже обработана'}), 400
+
+    data = request.json or {}
+
+    try:
+        new_date = datetime.date.fromisoformat(data['delivery_date'])
+        new_time = datetime.time.fromisoformat(data['delivery_time'])
+    except Exception:
+        return jsonify({'success': False, 'error': 'Некорректные дата или время'}), 400
+
+    duration = int(data.get('duration_min') or r.duration_min or 15)
+    place = data.get('unload_place') or r.unload_place
+
+    if not place:
+        return jsonify({'success': False, 'error': 'Не указано место разгрузки'}), 400
+
+    today = datetime.date.today()
+    max_date = today + datetime.timedelta(days=7)
+    if new_date < today or new_date > max_date:
+        return jsonify({'success': False, 'error': 'Можно выбрать только ближайшую неделю'}), 400
+
+    start_min = time_to_minutes(new_time)
+
+    for d in Delivery.query.filter_by(date=new_date, unload_place=place).all():
+        d_start = time_to_minutes(d.time_slot)
+        d_dur = d.duration_min or 15
+
+        if not (start_min + duration <= d_start or d_start + d_dur <= start_min):
+            return jsonify({'success': False, 'error': 'Диапазон времени занят'}), 409
+
+    r.requested_date = new_date
+    r.requested_time_slot = new_time
+    r.unload_place = place
+    r.duration_min = duration
+    r.status = 'approved'
+
+    delivery = Delivery(
+        date=new_date,
+        time_slot=new_time,
+        supplier_id=r.supplier_id,
+        material_id=r.material_id,
+        quantity=r.quantity,
+        unload_place=place,
+        duration_min=duration,
+        status='planned'
+    )
+
+    db.session.add(delivery)
+    db.session.commit()
+
+    return jsonify({'success': True})
+
+@api_supplier_bp.route('/requests/<int:req_id>/accept', methods=['POST'])
+@role_required('supplier')
+def supplier_accept(req_id):
+    supplier = Supplier.query.filter_by(user_id=session['user_id']).first()
+    if not supplier:
+        return jsonify({'success': False, 'error': 'Supplier not found'}), 404
+
+    r = Request.query.get_or_404(req_id)
+
+    if r.supplier_id != supplier.id:
+        return jsonify({'success': False, 'error': 'Нет доступа к заявке'}), 403
+
+    if r.status not in ['pending_supplier', 'reschedule_requested']:
+        return jsonify({'success': False, 'error': 'Заявка уже обработана'}), 400
+
+    r.status = 'approved'
+
+    delivery = Delivery(
+        date=r.requested_date,
+        time_slot=r.requested_time_slot,
+        supplier_id=r.supplier_id,
+        material_id=r.material_id,
+        quantity=r.quantity,
+        unload_place=r.unload_place,
+        duration_min=r.duration_min,
+        status='planned'
+    )
+
+    db.session.add(delivery)
     db.session.commit()
 
     return jsonify({'success': True})

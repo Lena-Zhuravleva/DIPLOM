@@ -17,6 +17,8 @@
           <th>Дата</th>
           <th>Время</th>
           <th>Место</th>
+          <th>Длительность</th>
+          <th>Комментарий</th>
           <th>Статус</th>
           <th>Действия</th>
         </tr>
@@ -36,6 +38,17 @@
       <label class="form-label">Дата</label>
       <input class="form-control" id="calendarDate" type="date">
     </div>
+    <div class="col col-6">
+      <label class="form-label">Длительность</label>
+      <select class="form-control" id="duration">
+        <option value="15">15 мин</option>
+        <option value="30">30 мин</option>
+        <option value="45">45 мин</option>
+        <option value="60">60 мин</option>
+        <option value="90">90 мин</option>
+        <option value="120">120 мин</option>
+      </select>
+    </div>
   </div>
 
   <div class="table-responsive mt-2">
@@ -50,7 +63,6 @@
 
 <script>
 let activeRequestId = null;
-let activeRequestStatus = null;
 
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
@@ -66,34 +78,38 @@ async function loadRequests() {
   tb.innerHTML = '';
 
   if (!j.success) {
-    tb.innerHTML = `<tr><td colspan="8">${j.error || 'Ошибка'}</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="10">${j.error || 'Ошибка'}</td></tr>`;
     return;
   }
 
   if (j.items.length === 0) {
-    tb.innerHTML = `<tr><td colspan="8">Заявок пока нет</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="10">Заявок пока нет</td></tr>`;
     return;
   }
 
   for (const it of j.items) {
     let actions = '—';
 
-    if (it.status === 'pending_supplier') {
+    if (it.status === 'pending_supplier' || it.status === 'reschedule_requested') {
       actions = `
-        <button class="btn btn-primary btn-sm" onclick="selectRequest(${it.id}, '${it.requested_date || ''}')">Выбрать время</button>
-        <button class="btn btn-secondary btn-sm" onclick="rescheduleRequest(${it.id})">Перенос</button>
-        <button class="btn btn-danger btn-sm" onclick="rejectRequest(${it.id})">Отказ</button>
+        <div class="action-stack">
+          <button type="button" class="btn btn-success btn-sm" onclick="acceptRequest(${it.id})">Принять</button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="selectRequest(${it.id}, '${it.requested_date || ''}')">Другое время</button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="rejectRequest(${it.id})">Отказ</button>
+        </div>
       `;
     }
 
     tb.insertAdjacentHTML('beforeend', `
-      <tr>
+      <tr class="${activeRequestId === it.id ? 'active-row' : ''}">
         <td>${it.id}</td>
         <td>${escapeHtml(it.material || '—')}</td>
         <td>${escapeHtml(it.quantity || '—')}</td>
         <td>${escapeHtml(it.requested_date || '—')}</td>
         <td>${escapeHtml(it.requested_time_slot || '—')}</td>
         <td>${escapeHtml(it.unload_place || '—')}</td>
+        <td>${escapeHtml(it.duration_min || '—')} мин</td>
+        <td>${escapeHtml(it.notes || '—')}</td>
         <td>${escapeHtml(it.status)}</td>
         <td>${actions}</td>
       </tr>
@@ -103,16 +119,30 @@ async function loadRequests() {
 
 async function selectRequest(reqId, reqDate) {
   activeRequestId = reqId;
-  activeRequestStatus = 'pending_supplier';
 
   const dateInput = document.getElementById('calendarDate');
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const max = new Date(today);
+  max.setDate(today.getDate() + 7);
+
+  let selectedDate = today.toISOString().slice(0, 10);
+
   if (reqDate) {
-    dateInput.value = reqDate;
-  } else {
-    dateInput.value = new Date().toISOString().slice(0, 10);
+    const req = new Date(reqDate);
+    req.setHours(0, 0, 0, 0);
+
+    if (req >= today && req <= max) {
+      selectedDate = reqDate;
+    }
   }
 
-  await loadCalendar(dateInput.value);
+  dateInput.value = selectedDate;
+
+  await loadRequests();
+  await loadCalendar(selectedDate);
 }
 
 async function loadCalendar(dateStr) {
@@ -148,7 +178,7 @@ async function loadCalendar(dateStr) {
       if (status === 'pending') cls = 'pending';
 
       let btn = '';
-      if (status === 'free' && activeRequestId && activeRequestStatus === 'pending_supplier') {
+      if (status === 'free' && activeRequestId !== null) {
         btn = `<button class="btn btn-primary btn-sm" onclick="confirmSlot('${row.time}', '${p.id}')">Выбрать</button>`;
       }
 
@@ -170,7 +200,7 @@ async function loadCalendar(dateStr) {
 }
 
 async function confirmSlot(time, place) {
-  if (!activeRequestId) {
+  if (activeRequestId === null) {
     alert('Сначала выберите заявку');
     return;
   }
@@ -181,38 +211,42 @@ async function confirmSlot(time, place) {
     return;
   }
 
+  const duration = document.getElementById('duration').value;
+
   const r = await fetch(`/api/supplier/requests/${activeRequestId}/confirm`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
       delivery_date: date,
       delivery_time: time,
-      unload_place: place
+      unload_place: place,
+      duration_min: duration
     })
   });
 
-  const j = await r.json();
+  let j;
+  try {
+    j = await r.json();
+  } catch (e) {
+    alert('Ошибка сервера: ответ не в формате JSON');
+    return;
+  }
+
+  if (!r.ok) {
+    alert(j.error || 'Ошибка подтверждения');
+    return;
+  }
+
   if (j.success) {
     alert('Время подтверждено');
     activeRequestId = null;
     await loadRequests();
-    await loadCalendar(date);
+
+    document.getElementById('calendarThead').innerHTML = '';
+    document.getElementById('calendarTbody').innerHTML =
+      `<tr><td>Выберите заявку</td></tr>`;
   } else {
     alert(j.error || 'Ошибка подтверждения');
-  }
-}
-
-async function rescheduleRequest(reqId) {
-  const r = await fetch(`/api/supplier/requests/${reqId}/reschedule`, {
-    method: 'POST'
-  });
-  const j = await r.json();
-
-  if (j.success) {
-    alert('Запрос на перенос отправлен');
-    await loadRequests();
-  } else {
-    alert(j.error || 'Ошибка');
   }
 }
 
@@ -239,6 +273,30 @@ document.getElementById('calendarDate').addEventListener('change', async (e) => 
   }
 });
 
+async function acceptRequest(reqId) {
+  const r = await fetch(`/api/supplier/requests/${reqId}/accept`, {
+    method: 'POST'
+  });
+
+  const j = await r.json();
+
+  if (j.success) {
+    alert('Заявка принята');
+    await loadRequests();
+  } else {
+    alert(j.error || 'Ошибка');
+  }
+}
+
 loadRequests();
+
+const dateInput = document.getElementById('calendarDate');
+
+const today = new Date();
+const max = new Date();
+max.setDate(today.getDate() + 7);
+
+dateInput.min = today.toISOString().slice(0, 10);
+dateInput.max = max.toISOString().slice(0, 10);
 </script>
 {% endblock %}

@@ -314,5 +314,63 @@
   white-space: nowrap;
 }
 
+/* ===== STATUS BADGES ===== */
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+/* Статус материалов */
+.status-normal {
+  background-color: #e8f7ee;
+  color: #1f7a3d;
+}
+
+.status-warning {
+  background-color: #fff4db;
+  color: #a36a00;
+}
+
+.status-critical {
+  background-color: #fde8e8;
+  color: #b42318;
+}
+
+/* Статус плана */
+.status-planned {
+  background-color: #e8f0fe;
+  color: #1d4ed8;
+}
+
+.status-in_progress {
+  background-color: #ede9fe;
+  color: #6d28d9;
+}
+
+.status-completed {
+  background-color: #e8f7ee;
+  color: #1f7a3d;
+}
+
+.active-row {
+  background-color: #e0f2fe;
+}
+.action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 150px;
+}
+
+.action-stack .btn {
+  width: 100%;
+  white-space: nowrap;
+}
 
 

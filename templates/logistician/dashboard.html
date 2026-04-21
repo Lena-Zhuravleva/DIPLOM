@@ -20,13 +20,13 @@
   <div class="logi-stats">
     <div class="logi-stat-card">
       <div class="logi-stat-title"><i class="fas fa-exclamation-triangle"></i> Проблемные материалы</div>
-      <div class="logi-stat-value" id="statCritical">—</div>
+      <div class="logi-stat-value">{{ critical_count }}</div>
       <div class="logi-stat-sub">warning + critical</div>
     </div>
 
     <div class="logi-stat-card">
       <div class="logi-stat-title"><i class="fas fa-inbox"></i> Заявки на подтверждение</div>
-      <div class="logi-stat-value" id="statPending">—</div>
+      <div class="logi-stat-value">{{ pending_count }}</div>
       <div class="logi-stat-sub">pending_logistician</div>
     </div>
 

@@ -2,7 +2,7 @@ import datetime
 from flask import Blueprint, jsonify, request, session
 from decorators import role_required
 from extensions import db
-from models import Request, Material, Delivery, Supplier, SupplierMaterial, UnloadingFact
+from models import Request, Material, Delivery, Supplier, SupplierMaterial, UnloadingFact, ProcurementPlan
 from helpers.scheduler import (
     UNLOAD_PLACES,
     generate_slots,
@@ -38,8 +38,11 @@ def logistician_requests():
 @role_required('logistician')
 def logistician_suppliers():
     material_id = request.args.get('material_id', type=int)
-    material = Material.query.get_or_404(material_id)
-    suppliers = supplier_candidates(material.status)
+    if not material_id:
+        return jsonify([])
+
+    rows = SupplierMaterial.query.filter_by(material_id=material_id).all()
+    suppliers = [row.supplier for row in rows if row.supplier]
 
     return jsonify([{
         'id': s.id,
@@ -244,13 +247,25 @@ def logistician_create_request():
     db.session.commit()
     return jsonify({'success': True, 'request_id': r.id})
 
-
+# все поставщики
 @api_logistician_bp.route('/api/logistician/all_suppliers')
 @role_required('logistician')
 def logistician_all_suppliers():
     suppliers = Supplier.query.order_by(Supplier.company_name.asc()).all()
     return jsonify([{'id': s.id, 'company_name': s.company_name} for s in suppliers])
-
+# все материалы
+@api_logistician_bp.route('/api/logistician/all_materials')
+@role_required('logistician')
+def logistician_all_materials():
+    materials = Material.query.order_by(Material.name.asc()).all()
+    return jsonify([
+        {
+            'id': m.id,
+            'name': m.name,
+            'unit': m.unit
+        }
+        for m in materials
+    ])
 
 @api_logistician_bp.route('/api/logistician/supplier_materials')
 @role_required('logistician')
@@ -263,3 +278,46 @@ def logistician_supplier_materials():
     mats = [r.material for r in rows if r.material]
 
     return jsonify([{'id': m.id, 'name': m.name, 'unit': m.unit} for m in mats])
+
+# план в модалке
+@api_logistician_bp.route('/api/logistician/procurement-plan')
+@role_required('logistician')
+def logistician_procurement_plan_api():
+    items = ProcurementPlan.query.order_by(ProcurementPlan.planned_date.asc()).all()
+
+    return jsonify({
+        'success': True,
+        'items': [{
+            'id': item.id,
+            'material': item.material.name if item.material else None,
+            'current_stock': item.material.current_stock if item.material else None,
+            'min_stock_level': item.material.min_stock_level if item.material else None,
+            'material_status': item.material.status if item.material else None,
+            'quantity': item.quantity,
+            'planned_date': item.planned_date.isoformat() if item.planned_date else None,
+            'status': item.status,
+            'notes': item.notes
+        } for item in items]
+    })
+
+# удаление заявки
+@api_logistician_bp.route('/api/logistician/requests/<int:req_id>/delete', methods=['POST'])
+@role_required('logistician')
+def delete_request(req_id):
+    r = Request.query.get_or_404(req_id)
+
+    db.session.delete(r)
+    db.session.commit()
+
+    return jsonify({'success': True})
+
+# удаление поставки
+@api_logistician_bp.route('/api/logistician/deliveries/<int:delivery_id>/delete', methods=['POST'])
+@role_required('logistician')
+def delete_delivery(delivery_id):
+    d = Delivery.query.get_or_404(delivery_id)
+
+    db.session.delete(d)
+    db.session.commit()
+
+    return jsonify({'success': True})

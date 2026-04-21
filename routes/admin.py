@@ -1,7 +1,8 @@
-from flask import Blueprint, request, redirect, url_for, flash, render_template
+from flask import Blueprint, request, redirect, url_for, flash, render_template, session
 from decorators import role_required
+import datetime
 from extensions import db
-from models import Supplier, SupplierMaterial, User
+from models import User, Supplier, Material, Request, ProcurementPlan, SupplierMaterial
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -72,6 +73,46 @@ def admin_save_supplier_materials():
 
     return redirect(url_for('suppliers.suppliers_page'))
 
+# редактирование материалов поставщика
+@admin_bp.route('/admin/supplier-materials')
+@role_required('admin')
+def supplier_materials_page():
+    suppliers = Supplier.query.order_by(Supplier.company_name.asc()).all()
+    materials = Material.query.order_by(Material.name.asc()).all()
+
+    relations = SupplierMaterial.query.all()
+
+    # делаем удобную структуру: {supplier_id: [material_ids]}
+    mapping = {}
+    for r in relations:
+        mapping.setdefault(r.supplier_id, []).append(r.material_id)
+
+    return render_template(
+        'admin/supplier_materials.html',
+        suppliers=suppliers,
+        materials=materials,
+        mapping=mapping
+    )
+# сохранение материалов поставщика
+@admin_bp.route('/admin/supplier-materials/save', methods=['POST'])
+@role_required('admin')
+def save_supplier_materials_matrix():
+    SupplierMaterial.query.delete()
+
+    for key, value in request.form.items():
+        if key.startswith('rel_'):
+            parts = key.split('_')
+            supplier_id = int(parts[1])
+            material_id = int(parts[2])
+
+            row = SupplierMaterial(
+                supplier_id=supplier_id,
+                material_id=material_id
+            )
+            db.session.add(row)
+
+    db.session.commit()
+    return redirect(url_for('admin.supplier_materials_page'))
 
 # ====== USERS (Admin) ======
 
@@ -141,3 +182,42 @@ def admin_users_create():
         flash(f'Ошибка при регистрации пользователя: {str(e)}', 'error')
 
     return redirect(url_for('admin.admin_users_page'))
+
+# таблица плана закупок
+@admin_bp.route('/procurement-plan')
+@role_required('admin')
+def procurement_plan_page():
+    materials = Material.query.order_by(Material.name.asc()).all()
+    items = ProcurementPlan.query.order_by(ProcurementPlan.planned_date.asc()).all()
+
+    return render_template(
+        'admin/procurement_plan.html',
+        materials=materials,
+        items=items
+    )
+
+# создание позиции плана
+@admin_bp.route('/procurement-plan/create', methods=['POST'])
+@role_required('admin')
+def create_procurement_plan_item():
+    material_id = request.form.get('material_id', type=int)
+    quantity = request.form.get('quantity', type=int)
+    planned_date = request.form.get('planned_date')
+    notes = request.form.get('notes', default='')
+
+    if not material_id or not quantity or not planned_date:
+        return redirect(url_for('admin.procurement_plan_page'))
+
+    item = ProcurementPlan(
+        material_id=material_id,
+        quantity=quantity,
+        planned_date=datetime.date.fromisoformat(planned_date),
+        status='planned',
+        notes=notes,
+        created_by=session['user_id']
+    )
+
+    db.session.add(item)
+    db.session.commit()
+
+    return redirect(url_for('admin.procurement_plan_page'))

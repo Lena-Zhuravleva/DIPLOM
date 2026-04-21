@@ -1,0 +1,87 @@
+{% extends "layouts/app.html" %}
+{% block title %}План закупок{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-list"></i> План закупок</h2>
+    </div>
+
+    <div class="card-body">
+      <p>Просмотр позиций плана закупок.</p>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header">
+      <h3><i class="fas fa-table"></i> Позиции плана</h3>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Материал</th>
+            <th>Остаток</th>
+            <th>Мин. запас</th>
+            <th>Статус материала</th>
+            <th>План закупки</th>
+            <th>Плановая дата</th>
+            <th>Статус плана</th>
+            <th>Комментарий</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.material.name if item.material else '—' }}</td>
+            <td>{{ item.material.current_stock if item.material else '—' }}</td>
+            <td>{{ item.material.min_stock_level if item.material else '—' }}</td>
+            <td>
+              {% if item.material %}
+                <span class="status-badge status-{{ item.material.status }}">
+                  {% if item.material.status == 'normal' %}
+                    Обычный
+                  {% elif item.material.status == 'warning' %}
+                    Внимание
+                  {% elif item.material.status == 'critical' %}
+                    Критический
+                  {% else %}
+                    {{ item.material.status }}
+                  {% endif %}
+                </span>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.planned_date }}</td>
+            <td>
+              <span class="status-badge status-{{ item.status }}">
+                {% if item.status == 'planned' %}
+                  Запланировано
+                {% elif item.status == 'in_progress' %}
+                  В работе
+                {% elif item.status == 'completed' %}
+                  Завершено
+                {% else %}
+                  {{ item.status }}
+                {% endif %}
+              </span>
+            </td>
+            <td>{{ item.notes or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9">План закупок пуст</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

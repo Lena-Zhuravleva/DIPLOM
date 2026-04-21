@@ -167,8 +167,37 @@ class Request(db.Model):
     supplier = db.relationship('Supplier')
     creator = db.relationship('User')
 
+# для плана закупок
+class ProcurementPlan(db.Model):
+    __tablename__ = 'procurement_plan'
 
-# ✅ правильная связующая таблица: составной PK
+    id = db.Column(db.Integer, primary_key=True)
+
+    material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    planned_date = db.Column(db.Date, nullable=False)
+
+    status = db.Column(
+        db.Enum('planned', 'in_progress', 'completed'),
+        default='planned',
+        nullable=False
+    )
+
+    notes = db.Column(db.Text)
+
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+
+    created_at = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())
+    updated_at = db.Column(
+        db.TIMESTAMP,
+        server_default=db.func.current_timestamp(),
+        onupdate=db.func.current_timestamp()
+    )
+
+    material = db.relationship('Material', backref='procurement_plan_items')
+    creator = db.relationship('User', backref='created_procurement_plan_items', foreign_keys=[created_by])
+
+# правильная связующая таблица: составной PK
 class SupplierMaterial(db.Model):
     __tablename__ = 'supplier_materials'
 

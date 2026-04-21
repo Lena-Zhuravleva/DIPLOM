@@ -1,0 +1,49 @@
+{% extends "layouts/app.html" %}
+{% block title %}Материалы по поставщикам{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-project-diagram"></i> Материалы по поставщикам</h2>
+    </div>
+
+    <form method="POST" action="{{ url_for('admin.save_supplier_materials_matrix') }}">
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Поставщик \ Материал</th>
+              {% for m in materials %}
+                <th>{{ m.name }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for s in suppliers %}
+            <tr>
+              <td><strong>{{ s.company_name }}</strong></td>
+
+              {% for m in materials %}
+              <td style="text-align:center;">
+                <input
+                  type="checkbox"
+                  name="rel_{{ s.id }}_{{ m.id }}"
+                  {% if m.id in mapping.get(s.id, []) %}checked{% endif %}
+                >
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="mt-3">
+        <button class="btn btn-primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

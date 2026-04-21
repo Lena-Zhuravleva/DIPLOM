@@ -55,6 +55,30 @@ CREATE TABLE materials (
   last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- ===== procurement_plan =====
+DROP TABLE IF EXISTS procurement_plan;
+CREATE TABLE procurement_plan (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+
+  material_id INT NOT NULL,
+  quantity INT NOT NULL,
+  planned_date DATE NOT NULL,
+  status ENUM('planned','in_progress','completed') NOT NULL DEFAULT 'planned',
+
+  notes TEXT,
+
+  created_by INT NOT NULL,
+
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_procurement_plan_material
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE,
+
+  CONSTRAINT fk_procurement_plan_created_by
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- ===== requests =====
 DROP TABLE IF EXISTS requests;
 CREATE TABLE requests (
@@ -93,6 +117,20 @@ CREATE TABLE requests (
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
   CONSTRAINT fk_requests_created_by
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- ===== supplier_materials =====
+DROP TABLE IF EXISTS supplier_materials;
+CREATE TABLE supplier_materials (
+  supplier_id INT NOT NULL,
+  material_id INT NOT NULL,
+  PRIMARY KEY (supplier_id, material_id),
+
+  CONSTRAINT fk_supplier_materials_supplier
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+
+  CONSTRAINT fk_supplier_materials_material
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ===== deliveries =====

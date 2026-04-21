@@ -1,0 +1,106 @@
+{% extends "layouts/app.html" %}
+{% block title %}План закупок{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-list"></i> План закупок</h2>
+    </div>
+
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('admin.create_procurement_plan_item') }}">
+        <div class="row">
+          <div class="col col-6">
+            <label class="form-label">Материал</label>
+            <select name="material_id" class="form-control" required>
+              <option value="">-- Выберите материал --</option>
+              {% for m in materials %}
+                <option value="{{ m.id }}">{{ m.name }} ({{ m.unit }})</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col col-6">
+            <label class="form-label">Количество</label>
+            <input type="number" name="quantity" class="form-control" min="1" required>
+          </div>
+        </div>
+
+        <div class="row mt-2">
+          <div class="col col-6">
+            <label class="form-label">Плановая дата</label>
+            <input type="date" name="planned_date" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="mt-2">
+          <label class="form-label">Комментарий</label>
+          <textarea name="notes" class="form-control" rows="3"></textarea>
+        </div>
+
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Добавить в план
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header">
+      <h3><i class="fas fa-table"></i> Позиции плана</h3>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Материал</th>
+            <th>Остаток</th>
+            <th>Мин. запас</th>
+            <th>Статус материала</th>
+            <th>План закупки</th>
+            <th>Плановая дата</th>
+            <th>Статус плана</th>
+            <th>Комментарий</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in items %}
+          <tr>
+            <td>{{ item.id }}</td>
+            <td>{{ item.material.name if item.material else '—' }}</td>
+            <td>{{ item.material.current_stock if item.material else '—' }}</td>
+            <td>{{ item.material.min_stock_level if item.material else '—' }}</td>
+            <td>
+              {% if item.material %}
+                <span class="status-badge status-{{ item.material.status }}">
+                  {{ item.material.status }}
+                </span>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.planned_date }}</td>
+            <td>
+              <span class="status-badge status-{{ item.status }}">
+                {{ item.status }}
+              </span>
+            </td>
+            <td>{{ item.notes or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="9">План пока пуст</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
