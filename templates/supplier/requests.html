@@ -7,7 +7,7 @@
     <h2><i class="fas fa-clipboard-list"></i> Мои заявки</h2>
   </div>
 
-  <div class="table-responsive">
+  <div class="table-responsive supplier-requests-table-wrap">
     <table class="data-table" id="tbl">
       <thead>
         <tr>
@@ -20,6 +20,7 @@
           <th>Длительность</th>
           <th>Комментарий</th>
           <th>Статус</th>
+          <th>Результат</th>
           <th>Действия</th>
         </tr>
       </thead>
@@ -71,6 +72,25 @@ function escapeHtml(str) {
   })[m]);
 }
 
+function getStatusText(status) {
+  if (status === 'pending_supplier') return 'Ожидает ответа поставщика';
+  if (status === 'reschedule_requested') return 'Запрошен перенос';
+  if (status === 'approved') return 'Подтверждена';
+  if (status === 'rejected_supplier') return 'Отклонена поставщиком';
+  if (status === 'rejected') return 'Отклонена';
+  if (status === 'pending_logistician') return 'Ожидает логиста';
+  return status || '—';
+}
+
+function getResultText(status) {
+  if (status === 'pending_supplier') return 'Требуется решение';
+  if (status === 'reschedule_requested') return 'Поставщик запросил другое время';
+  if (status === 'approved') return 'Поставка будет выполняться';
+  if (status === 'rejected_supplier') return 'Поставка не будет выполняться';
+  if (status === 'rejected') return 'Заявка отменена';
+  return '—';
+}
+
 async function loadRequests() {
   const r = await fetch('/api/supplier/requests');
   const j = await r.json();
@@ -78,17 +98,17 @@ async function loadRequests() {
   tb.innerHTML = '';
 
   if (!j.success) {
-    tb.innerHTML = `<tr><td colspan="10">${j.error || 'Ошибка'}</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="11">${j.error || 'Ошибка'}</td></tr>`;
     return;
   }
 
   if (j.items.length === 0) {
-    tb.innerHTML = `<tr><td colspan="10">Заявок пока нет</td></tr>`;
+    tb.innerHTML = `<tr><td colspan="11">Заявок пока нет</td></tr>`;
     return;
   }
 
   for (const it of j.items) {
-    let actions = '—';
+    let actions = '<span class="logi-muted">Действие не требуется</span>';
 
     if (it.status === 'pending_supplier' || it.status === 'reschedule_requested') {
       actions = `
@@ -110,7 +130,8 @@ async function loadRequests() {
         <td>${escapeHtml(it.unload_place || '—')}</td>
         <td>${escapeHtml(it.duration_min || '—')} мин</td>
         <td>${escapeHtml(it.notes || '—')}</td>
-        <td>${escapeHtml(it.status)}</td>
+        <td>${escapeHtml(getStatusText(it.status))}</td>
+        <td>${escapeHtml(getResultText(it.status))}</td>
         <td>${actions}</td>
       </tr>
     `);

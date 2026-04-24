@@ -242,7 +242,7 @@
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  table-layout: fixed; /* КЛЮЧ! колонкам нельзя “расползаться” */
+  table-layout: auto;
   background: #fff;
   border: 1px solid rgba(0,0,0,.08);
   border-radius: 12px;
@@ -274,11 +274,15 @@
   vertical-align: middle;
 
   /* КЛЮЧ! */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap; /* текст не ломает колонки */
+  white-space: nowrap;      /* не переносим */
+  overflow: visible;        /* не обрезаем */
+  text-overflow: unset
 }
-
+/*для комментария*/
+.comment-cell {
+  white-space: normal;
+  max-width: 300px;
+}
 /* строки */
 .data-table tbody tr:hover {
   background: rgba(0,0,0,.02);
@@ -371,6 +375,18 @@
 .action-stack .btn {
   width: 100%;
   white-space: nowrap;
+}
+
+/* Для ползунка на таблицах */
+.supplier-requests-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+.supplier-requests-table-wrap .data-table {
+  min-width: 1200px;
 }
 
 

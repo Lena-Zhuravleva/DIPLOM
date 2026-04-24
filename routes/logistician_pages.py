@@ -17,8 +17,8 @@ def logistician_dashboard():
         Material.status.in_(['warning', 'critical'])
     ).count()
 
-    pending_count = Request.query.filter_by(
-        status='pending_logistician'
+    pending_count = Request.query.filter(
+        Request.status.in_(['pending_supplier', 'reschedule_requested'])
     ).count()
 
     upcoming_deliveries = Delivery.query.filter(

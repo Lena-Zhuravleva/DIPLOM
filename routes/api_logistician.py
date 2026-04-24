@@ -18,7 +18,7 @@ api_logistician_bp = Blueprint('api_logistician', __name__)
 @api_logistician_bp.route('/api/logistician/requests')
 @role_required('logistician')
 def logistician_requests():
-    reqs = Request.query.filter_by(status='pending_logistician').order_by(Request.created_at.desc()).all()
+    reqs = Request.query.order_by(Request.created_at.desc()).all()
     return jsonify([{
         'id': r.id,
         'type': r.type,
@@ -29,6 +29,8 @@ def logistician_requests():
         'requested_date': r.requested_date.isoformat() if r.requested_date else None,
         'requested_time_slot': r.requested_time_slot.strftime('%H:%M') if r.requested_time_slot else None,
         'supplier_id': r.supplier_id,
+        'supplier': r.supplier.company_name if r.supplier else None,
+        'status': r.status,
         'notes': r.notes,
         'created_at': r.created_at.isoformat() if r.created_at else None
     } for r in reqs])
@@ -152,6 +154,7 @@ def logistician_calendar():
                     plan = {
                         "kind": "delivery",
                         "id": d.id,
+                        "supplier_id": d.supplier_id,
                         "supplier": d.supplier.company_name if d.supplier else None,
                         "material": d.material.name if d.material else None,
                         "quantity": d.quantity,
@@ -306,7 +309,7 @@ def logistician_procurement_plan_api():
 def delete_request(req_id):
     r = Request.query.get_or_404(req_id)
 
-    db.session.delete(r)
+    r.status = 'rejected'
     db.session.commit()
 
     return jsonify({'success': True})
@@ -317,7 +320,38 @@ def delete_request(req_id):
 def delete_delivery(delivery_id):
     d = Delivery.query.get_or_404(delivery_id)
 
-    db.session.delete(d)
+    d.status = 'cancelled'
     db.session.commit()
 
     return jsonify({'success': True})
+
+# Отметка выполнения заявки
+@api_logistician_bp.route('/api/logistician/deliveries/<int:delivery_id>/complete', methods=['POST'])
+@role_required('logistician')
+def complete_delivery(delivery_id):
+    d = Delivery.query.get_or_404(delivery_id)
+
+    d.status = 'delivered'
+    db.session.commit()
+
+    return jsonify({'success': True})
+
+
+# Для отображения поставок всех
+@api_logistician_bp.route('/api/logistician/deliveries')
+@role_required('logistician')
+def logistician_deliveries():
+    deliveries = Delivery.query.order_by(Delivery.date.desc(), Delivery.time_slot.desc()).all()
+
+    return jsonify([{
+        'id': d.id,
+        'date': d.date.isoformat() if d.date else None,
+        'time_slot': d.time_slot.strftime('%H:%M') if d.time_slot else None,
+        'supplier': d.supplier.company_name if d.supplier else None,
+        'material': d.material.name if d.material else None,
+        'quantity': d.quantity,
+        'unload_place': d.unload_place,
+        'duration_min': d.duration_min,
+        'status': d.status,
+        'notes': d.notes
+    } for d in deliveries])

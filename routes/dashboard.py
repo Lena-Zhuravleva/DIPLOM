@@ -31,21 +31,7 @@ def dashboard():
         return render_template('admin/dashboard.html', **context)
 
     if role == 'logistician':
-        critical_materials = Material.query.filter(Material.status.in_(['critical', 'warning'])).all()
-
-        today = datetime.date.today()
-        week_later = today + datetime.timedelta(days=7)
-
-        upcoming_deliveries = Delivery.query.filter(
-            Delivery.date >= today,
-            Delivery.date <= week_later
-        ).order_by(Delivery.date, Delivery.time_slot).limit(5).all()
-
-        context.update({
-            'critical_materials': critical_materials,
-            'upcoming_deliveries': upcoming_deliveries
-        })
-        return render_template('logistician/dashboard.html', **context)
+        return redirect(url_for('logistician_pages.logistician_dashboard'))
 
     if role == 'warehouse':
         today = datetime.date.today()

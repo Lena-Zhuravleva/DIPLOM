@@ -4,7 +4,6 @@
 {% block content %}
 <div class="container logi-page">
 
-  <!-- Верх -->
   <div class="logi-topbar">
     <div>
       <h1 class="logi-title">
@@ -16,27 +15,94 @@
     </div>
   </div>
 
-  <!-- Статы -->
   <div class="logi-stats">
     <div class="logi-stat-card">
-      <div class="logi-stat-title"><i class="fas fa-exclamation-triangle"></i> Проблемные материалы</div>
+      <div class="logi-stat-title">
+        <i class="fas fa-exclamation-triangle"></i> Проблемные материалы
+      </div>
       <div class="logi-stat-value">{{ critical_count }}</div>
       <div class="logi-stat-sub">warning + critical</div>
     </div>
 
     <div class="logi-stat-card">
-      <div class="logi-stat-title"><i class="fas fa-inbox"></i> Заявки на подтверждение</div>
+      <div class="logi-stat-title">
+        <i class="fas fa-inbox"></i> Заявки поставщикам
+      </div>
       <div class="logi-stat-value">{{ pending_count }}</div>
-      <div class="logi-stat-sub">pending_logistician</div>
+      <div class="logi-stat-sub">ожидают ответа поставщика</div>
     </div>
 
     <div class="logi-stat-card">
-      <div class="logi-stat-title"><i class="fas fa-calendar-check"></i> Ближайшие поставки</div>
+      <div class="logi-stat-title">
+        <i class="fas fa-calendar-check"></i> Ближайшие поставки
+      </div>
       <div class="logi-stat-value">{{ upcoming_deliveries|length }}</div>
       <div class="logi-stat-sub">в течение 7 дней</div>
     </div>
   </div>
 
+  <section class="logi-panel mt-3">
+    <div class="logi-panel-head">
+      <h3 class="logi-panel-title">
+        <i class="fas fa-truck"></i> Ближайшие поставки
+      </h3>
+    </div>
 
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Время</th>
+            <th>Поставщик</th>
+            <th>Материал</th>
+            <th>Количество</th>
+            <th>Место</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for d in upcoming_deliveries %}
+          <tr>
+            <td>{{ d.date }}</td>
+            <td>{{ d.time_slot }}</td>
+            <td>{{ d.supplier.company_name if d.supplier else '—' }}</td>
+            <td>{{ d.material.name if d.material else '—' }}</td>
+            <td>{{ d.quantity }}</td>
+            <td>{{ d.unload_place or '—' }}</td>
+            <td>{{ d.status }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">Ближайших поставок нет</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
 
+  <section class="logi-panel mt-3">
+    <div class="logi-panel-head">
+      <h3 class="logi-panel-title">
+        <i class="fas fa-link"></i> Быстрые переходы
+      </h3>
+    </div>
+
+    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+      <a href="/logistician/calendar" class="btn btn-primary">
+        <i class="fas fa-calendar-alt"></i> Открыть календарь
+      </a>
+
+      <a href="/logistician/requests" class="btn btn-secondary">
+        <i class="fas fa-clipboard-list"></i> Журнал заявок и поставок
+      </a>
+
+      <a href="/logistician/procurement-plan" class="btn btn-secondary">
+        <i class="fas fa-list"></i> План закупок
+      </a>
+    </div>
+  </section>
+
+</div>
 {% endblock %}

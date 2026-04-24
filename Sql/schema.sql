@@ -100,12 +100,13 @@ CREATE TABLE requests (
   created_by INT NOT NULL,
 
   status ENUM(
-    'pending_logistician',
-    'pending_supplier',
-    'approved',
-    'rejected',
-    'reschedule_requested'
-  ) DEFAULT 'pending_logistician',
+      'pending_logistician',
+      'pending_supplier',
+      'approved',
+      'rejected',
+      'rejected_supplier',
+      'reschedule_requested'
+    ) DEFAULT 'pending_logistician',
 
   notes TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

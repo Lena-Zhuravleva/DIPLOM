@@ -29,6 +29,22 @@ function minToTime(min) {
   return `${h}:${m}`;
 }
 
+// функция выбора цвета поставщика
+function getSupplierColorClass(supplierId) {
+  if (!supplierId) return 'supplier-color-default';
+
+  const colors = [
+    'supplier-color-1',
+    'supplier-color-2',
+    'supplier-color-3',
+    'supplier-color-4',
+    'supplier-color-5',
+    'supplier-color-6'
+  ];
+
+  return colors[supplierId % colors.length];
+}
+
 // ===== Calendar =====
 async function loadCalendar(dateStr) {
   const thead = $('calendarThead');
@@ -72,27 +88,68 @@ async function loadCalendar(dateStr) {
 
       if (plan) {
         if (plan.kind === 'delivery') {
-          cellClass = 'cell busy';
+          cellClass = 'cell busy ' + getSupplierColorClass(plan.supplier_id);
           mainHtml = `
             <div class="cell-main">
+
               <div class="cell-line strong">${escapeHtml(plan.supplier || '')}</div>
               <div class="cell-line">${escapeHtml(plan.material || '')}${plan.quantity ? ' • ' + escapeHtml(plan.quantity) : ''}</div>
+              <div class="cell-line">${
+                  plan.status === 'delivered'
+                    ? 'Выполнено'
+                    : plan.status === 'planned'
+                      ? 'Запланировано'
+                      : escapeHtml(plan.status || '')
+                }</div>
+              </div>
+          `;
+          let buttons = `
+            <button class="btn btn-danger btn-sm js-delete-delivery" data-id="${plan.id}">
+              Удалить
+            </button>
+          `;
+
+          if (plan.status !== 'delivered') {
+            buttons += `
+              <button class="btn btn-success btn-sm js-complete-delivery" data-id="${plan.id}">
+                Выполнено
+              </button>
+            `;
+          }
+
+          actionHtml = `
+            <div class="cell-actions">
+              ${buttons}
             </div>
           `;
-          actionHtml = `
-              <div class="cell-actions">
-                <button class="btn btn-danger btn-sm js-delete-delivery"
-                  data-id="${plan.id}">
-                  Удалить
-                </button>
-              </div>
-            `;
         } else {
-          cellClass = 'cell pending';
+          cellClass = 'cell pending ' + getSupplierColorClass(plan.supplier_id);
           mainHtml = `
             <div class="cell-main">
               <div class="cell-line strong">${escapeHtml(plan.supplier || 'Заявка')}</div>
               <div class="cell-line">${escapeHtml(plan.material || '—')}${plan.quantity ? ' • ' + escapeHtml(plan.quantity) : ''}</div>
+            </div>
+          `;
+
+          actionHtml = `
+            <div class="cell-actions">
+              <button class="btn btn-primary btn-sm js-approve"
+                  data-id="${plan.id}"
+                  data-material-id="${plan.material_id || ''}"
+                  data-material="${escapeHtml(plan.material || '')}"
+                  data-supplier-id="${plan.supplier_id || ''}"
+                  data-supplier="${escapeHtml(plan.supplier || '')}"
+                  data-quantity="${plan.quantity || ''}"
+                  data-duration="${plan.duration_min || ''}"
+                  data-date="${dateStr}"
+                  data-time="${time}">
+                  Рассмотреть
+                </button>
+
+              <button class="btn btn-danger btn-sm js-delete-request"
+                data-id="${plan.id}">
+                Удалить
+              </button>
             </div>
           `;
         }
@@ -345,16 +402,29 @@ if (togglePlanBtn) {
   });
 }
 
-async function openApproveModal(reqId, materialId, prefDate, prefTime) {
+async function openApproveModal(reqId, materialId, materialName, supplierId, supplierName, quantity, duration, prefDate, prefTime) {
   if (!$('approveModal')) return;
 
   $('requestId').value = reqId;
   $('approveHint').textContent = '';
 
+  if ($('approveMaterialName')) $('approveMaterialName').value = materialName || '';
+  if ($('approveSupplierName')) $('approveSupplierName').value = supplierName || '';
+  if ($('approveQuantity')) $('approveQuantity').value = quantity || '';
+  if ($('approveDuration')) $('approveDuration').value = duration ? `${duration} мин` : '';
+
   if (prefDate) $('deliveryDate').value = prefDate;
   if (prefTime) $('deliveryTime').value = prefTime;
 
-  if (materialId) await loadSuppliersForApprove(materialId);
+  // если хочешь, можно сразу выбрать поставщика в select
+  if (materialId) {
+    await loadSuppliersForApprove(materialId);
+
+    if ($('selectSupplier') && supplierId) {
+      $('selectSupplier').value = supplierId;
+    }
+  }
+
   openModal('approveModal');
 }
 
@@ -364,6 +434,11 @@ document.addEventListener('click', async (e) => {
     await openApproveModal(
       a.getAttribute('data-id'),
       a.getAttribute('data-material-id'),
+      a.getAttribute('data-material'),
+      a.getAttribute('data-supplier-id'),
+      a.getAttribute('data-supplier'),
+      a.getAttribute('data-quantity'),
+      a.getAttribute('data-duration'),
       a.getAttribute('data-date'),
       a.getAttribute('data-time')
     );
@@ -438,6 +513,29 @@ if (calDate) {
     if (calDate.value) await loadCalendar(calDate.value);
   });
 }
+// обработчик выполнения поставк
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.js-complete-delivery');
+  if (!btn) return;
+
+  const ok = confirm('Отметить поставку как выполненную?');
+  if (!ok) return;
+
+  const id = btn.getAttribute('data-id');
+
+  const res = await fetch(`/api/logistician/deliveries/${id}/complete`, {
+    method: 'POST'
+  });
+
+  const data = await res.json();
+
+  if (data.success) {
+    const d = $('calendarDate')?.value;
+    if (d) await loadCalendar(d);
+  } else {
+    alert(data.error || 'Ошибка при завершении поставки');
+  }
+});
 //обработчик удаления поставки
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('.js-delete-delivery');
@@ -458,6 +556,29 @@ document.addEventListener('click', async (e) => {
     if (d) await loadCalendar(d);
   } else {
     alert(data.error || 'Ошибка удаления');
+  }
+});
+
+//обработчик удаления заявки
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.js-delete-request');
+  if (!btn) return;
+
+  const ok = confirm('Удалить заявку?');
+  if (!ok) return;
+
+  const id = btn.getAttribute('data-id');
+
+  const res = await fetch(`/api/logistician/requests/${id}/delete`, {
+    method: 'POST'
+  });
+
+  const data = await res.json();
+  if (data.success) {
+    const d = $('calendarDate')?.value;
+    if (d) await loadCalendar(d);
+  } else {
+    alert(data.error || 'Ошибка удаления заявки');
   }
 });
 

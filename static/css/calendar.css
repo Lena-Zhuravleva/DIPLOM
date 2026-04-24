@@ -98,3 +98,70 @@
 /* header subtitle */
 .th-title{ font-weight: 800; }
 .th-sub{ font-size: 12px; opacity: .6; margin-top: 2px; }
+
+
+/* ===== Цвета поставщиков в календаре ===== */
+
+.supplier-color-default {
+  border-left: 4px solid #9ca3af;
+}
+
+.supplier-color-1 {
+  background-color: #e0f2fe;
+  border-left: 4px solid #0284c7;
+}
+
+.supplier-color-2 {
+  background-color: #dcfce7;
+  border-left: 4px solid #16a34a;
+}
+
+.supplier-color-3 {
+  background-color: #f3e8ff;
+  border-left: 4px solid #9333ea;
+}
+
+.supplier-color-4 {
+  background-color: #ffedd5;
+  border-left: 4px solid #ea580c;
+}
+
+.supplier-color-5 {
+  background-color: #fee2e2;
+  border-left: 4px solid #dc2626;
+}
+
+.supplier-color-6 {
+  background-color: #fef9c3;
+  border-left: 4px solid #ca8a04;
+}
+
+.cell.supplier-color-1 {
+  background-color: #e0f2fe;
+  border-left: 4px solid #0284c7;
+}
+
+.cell.supplier-color-2 {
+  background-color: #dcfce7;
+  border-left: 4px solid #16a34a;
+}
+
+.cell.supplier-color-3 {
+  background-color: #f3e8ff;
+  border-left: 4px solid #9333ea;
+}
+
+.cell.supplier-color-4 {
+  background-color: #ffedd5;
+  border-left: 4px solid #ea580c;
+}
+
+.cell.supplier-color-5 {
+  background-color: #fee2e2;
+  border-left: 4px solid #dc2626;
+}
+
+.cell.supplier-color-6 {
+  background-color: #fef9c3;
+  border-left: 4px solid #ca8a04;
+}
