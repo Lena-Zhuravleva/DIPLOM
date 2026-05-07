@@ -2,7 +2,7 @@ from flask import Blueprint, request, redirect, url_for, flash, render_template,
 from decorators import role_required
 import datetime
 from extensions import db
-from models import User, Supplier, Material, Request, ProcurementPlan, SupplierMaterial
+from models import User, Supplier, Material, Request, ProcurementPlan, SupplierMaterial, Delivery, SupplierRatingHistory, SupplierEvent
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -82,10 +82,9 @@ def supplier_materials_page():
 
     relations = SupplierMaterial.query.all()
 
-    # делаем удобную структуру: {supplier_id: [material_ids]}
     mapping = {}
     for r in relations:
-        mapping.setdefault(r.supplier_id, []).append(r.material_id)
+        mapping[(r.supplier_id, r.material_id)] = r
 
     return render_template(
         'admin/supplier_materials.html',
@@ -93,6 +92,7 @@ def supplier_materials_page():
         materials=materials,
         mapping=mapping
     )
+
 # сохранение материалов поставщика
 @admin_bp.route('/admin/supplier-materials/save', methods=['POST'])
 @role_required('admin')
@@ -100,16 +100,34 @@ def save_supplier_materials_matrix():
     SupplierMaterial.query.delete()
 
     for key, value in request.form.items():
-        if key.startswith('rel_'):
-            parts = key.split('_')
-            supplier_id = int(parts[1])
-            material_id = int(parts[2])
+        if not key.startswith('rel_'):
+            continue
 
-            row = SupplierMaterial(
-                supplier_id=supplier_id,
-                material_id=material_id
-            )
-            db.session.add(row)
+        parts = key.split('_')
+        supplier_id = int(parts[1])
+        material_id = int(parts[2])
+
+        price_raw = request.form.get(f'price_{supplier_id}_{material_id}')
+        lead_raw = request.form.get(f'lead_{supplier_id}_{material_id}')
+
+        price = None
+        lead_time_days = None
+
+        if price_raw:
+            price = float(price_raw)
+
+        if lead_raw:
+            lead_time_days = int(lead_raw)
+
+        row = SupplierMaterial(
+            supplier_id=supplier_id,
+            material_id=material_id,
+            price=price,
+            lead_time_days=lead_time_days,
+            is_active=True
+        )
+
+        db.session.add(row)
 
     db.session.commit()
     return redirect(url_for('admin.supplier_materials_page'))
@@ -221,3 +239,183 @@ def create_procurement_plan_item():
     db.session.commit()
 
     return redirect(url_for('admin.procurement_plan_page'))
+
+# деактивация пользователя
+@admin_bp.route('/admin/users/<int:user_id>/deactivate', methods=['POST'])
+@role_required('admin')
+def deactivate_user(user_id):
+    user = User.query.get_or_404(user_id)
+
+    if user.role == 'admin':
+        flash('Администратора нельзя деактивировать через эту кнопку.', 'error')
+        return redirect(url_for('admin.admin_users_page'))
+
+    user.is_active = False
+
+    if user.role == 'supplier' and user.supplier:
+        user.supplier.is_active = False
+
+    db.session.commit()
+    flash('Пользователь деактивирован.', 'success')
+    return redirect(url_for('admin.admin_users_page'))
+
+# восстановление пользователя
+@admin_bp.route('/admin/users/<int:user_id>/activate', methods=['POST'])
+@role_required('admin')
+def activate_user(user_id):
+    user = User.query.get_or_404(user_id)
+
+    user.is_active = True
+
+    if user.role == 'supplier' and user.supplier:
+        user.supplier.is_active = True
+
+    db.session.commit()
+    flash('Пользователь восстановлен.', 'success')
+    return redirect(url_for('admin.admin_users_page'))
+
+# деактивация поставщика
+@admin_bp.route('/admin/suppliers/<int:supplier_id>/deactivate', methods=['POST'])
+@role_required('admin')
+def deactivate_supplier(supplier_id):
+    supplier = Supplier.query.get_or_404(supplier_id)
+
+    supplier.is_active = False
+
+    if supplier.user:
+        supplier.user.is_active = False
+
+    db.session.commit()
+    flash('Поставщик деактивирован.', 'success')
+    return redirect(url_for('suppliers.suppliers_page'))
+
+# восстановление поставщика
+@admin_bp.route('/admin/suppliers/<int:supplier_id>/activate', methods=['POST'])
+@role_required('admin')
+def activate_supplier(supplier_id):
+    supplier = Supplier.query.get_or_404(supplier_id)
+
+    supplier.is_active = True
+
+    if supplier.user:
+        supplier.user.is_active = True
+
+    db.session.commit()
+    flash('Поставщик восстановлен.', 'success')
+    return redirect(url_for('suppliers.suppliers_page'))
+
+#хранение истории о поставщике
+@admin_bp.route('/admin/supplier-rating')
+@role_required('admin')
+def supplier_ratings_page():
+    suppliers = Supplier.query.order_by(Supplier.rating.desc()).all()
+
+    history = (SupplierRatingHistory.query
+               .order_by(SupplierRatingHistory.created_at.desc())
+               .limit(100)
+               .all())
+
+    stats = []
+
+    for s in suppliers:
+        total = Delivery.query.filter_by(supplier_id=s.id).count()
+        delivered = Delivery.query.filter_by(supplier_id=s.id, status='delivered').count()
+        cancelled = Delivery.query.filter_by(supplier_id=s.id, status='cancelled').count()
+
+        delivered_rows = Delivery.query.filter(
+            Delivery.supplier_id == s.id,
+            Delivery.status == 'delivered',
+            Delivery.delay_minutes.isnot(None)
+        ).all()
+
+        if delivered_rows:
+            avg_delay = round(sum(d.delay_minutes for d in delivered_rows) / len(delivered_rows), 1)
+        else:
+            avg_delay = None
+
+        stats.append({
+            'supplier': s,
+            'total': total,
+            'delivered': delivered,
+            'cancelled': cancelled,
+            'avg_delay': avg_delay
+        })
+
+    return render_template(
+        'admin/supplier_rating.html',
+        stats=stats,
+        history=history
+    )
+
+# роут для отображения журнала действий в системе
+@admin_bp.route('/admin/supplier-events')
+@role_required('admin')
+def supplier_events_page():
+    events = (SupplierEvent.query
+              .order_by(SupplierEvent.created_at.desc())
+              .limit(200)
+              .all())
+
+    return render_template(
+        'admin/supplier_events.html',
+        events=events
+    )
+
+# аналитика поставщика
+@admin_bp.route('/admin/supplier-analytics/<int:supplier_id>')
+@role_required('admin')
+def supplier_analytics_page(supplier_id):
+    supplier = Supplier.query.get_or_404(supplier_id)
+
+    deliveries = Delivery.query.filter_by(supplier_id=supplier.id).all()
+
+    total = len(deliveries)
+    delivered = len([d for d in deliveries if d.status == 'delivered'])
+    cancelled = len([d for d in deliveries if d.status == 'cancelled'])
+    planned = len([d for d in deliveries if d.status == 'planned'])
+
+    delivered_with_delay = [
+        d for d in deliveries
+        if d.status == 'delivered' and d.delay_minutes is not None
+    ]
+
+    avg_delay = None
+    if delivered_with_delay:
+        avg_delay = round(sum(d.delay_minutes for d in delivered_with_delay) / len(delivered_with_delay), 1)
+
+    quality_rows = [
+        d for d in deliveries
+        if d.status == 'delivered' and d.quality_score is not None
+    ]
+
+    avg_quality = None
+    if quality_rows:
+        avg_quality = round(sum(d.quality_score for d in quality_rows) / len(quality_rows), 2)
+
+    materials = SupplierMaterial.query.filter_by(supplier_id=supplier.id).all()
+
+    events = (SupplierEvent.query
+              .filter_by(supplier_id=supplier.id)
+              .order_by(SupplierEvent.created_at.desc())
+              .limit(50)
+              .all())
+
+    rating_history = (SupplierRatingHistory.query
+                      .filter_by(supplier_id=supplier.id)
+                      .order_by(SupplierRatingHistory.created_at.desc())
+                      .limit(50)
+                      .all())
+
+    return render_template(
+        'admin/supplier_analytics.html',
+        supplier=supplier,
+        total=total,
+        delivered=delivered,
+        cancelled=cancelled,
+        planned=planned,
+        avg_delay=avg_delay,
+        avg_quality=avg_quality,
+        materials=materials,
+        events=events,
+        rating_history=rating_history
+    )

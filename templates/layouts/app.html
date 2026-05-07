@@ -84,6 +84,11 @@
               <li><a href="{{ url_for('admin.supplier_materials_page') }}" class="{% if request.path.startswith('/admin/supplier-materials') %}active{% endif %}">
                 <i class="fas fa-boxes"></i> Ассортимент поставщиков
               </a></li>
+              <li>
+                <a href="/admin/supplier-rating" class="{% if request.path.startswith('/admin/supplier-rating') %}active{% endif %}">
+                  <i class="fas fa-star"></i> Рейтинг поставщиков
+                </a>
+              </li>
               <li><a href="/procurement-plan" class="{% if request.path.startswith('/procurement-plan') %}active{% endif %}">
                 <i class="fas fa-dolly-flatbed"></i> План закупок
               </a></li>
@@ -91,6 +96,12 @@
               <li><a href="/admin/users" class="{% if request.path.startswith('/admin/users') %}active{% endif %}">
                 <i class="fas fa-user-plus"></i> Пользователи
               </a></li>
+
+              <li>
+                <a href="/admin/supplier-events" class="{% if request.path.startswith('/admin/supplier-events') %}active{% endif %}">
+                  <i class="fas fa-stream"></i> Журнал событий
+                </a>
+              </li>
 
 
             {% elif session.get('role') == 'logistician' %}

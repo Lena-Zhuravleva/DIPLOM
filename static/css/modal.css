@@ -7,6 +7,7 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
+  overflow-y: auto;
 }
 
 .modal[style*="display: block"]{
@@ -16,10 +17,14 @@
 .modal .modal-content{
   position: relative;
   width: 100%;
-  max-width: 520px;
+  max-width: 900px;
+  max-height: 90vh;
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -28,12 +33,17 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+
+  overflow-y: auto;
 }
 
 .modal-header{
-  position: relative;
+  position: sticky;
+  top: 0;
+  background: #fff;
+  z-index: 10;
   padding: 18px 24px;
-  text-align: center; /* заголовок по центру */
+  text-align: center;
   border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 
@@ -77,10 +87,15 @@
   transform: rotate(90deg) scale(0.95);
 }
 .modal-footer{
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  z-index: 10;
+
   display: flex;
-  justify-content: center;   /* центр */
+  justify-content: center;
   gap: 12px;
-  padding: 16px 24px 22px;   /* чтобы не липли к краям */
+  padding: 16px 24px 22px;
   border-top: 1px solid rgba(0,0,0,0.06);
 }
 

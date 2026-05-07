@@ -1,10 +1,69 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "layouts/app.html" %}
+{% block title %}Журнал событий поставщиков{% endblock %}
+
+{% block content %}
+<div class="container">
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-stream"></i> Журнал событий поставщиков</h2>
+      <p class="register-subtitle">
+        Здесь отображаются действия, влияющие на аналитику и выбор поставщиков.
+      </p>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Поставщик</th>
+            <th>Материал</th>
+            <th>ID заявки</th>
+            <th>ID поставки</th>
+            <th>Событие</th>
+            <th>Описание</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for e in events %}
+          <tr>
+            <td>{{ e.created_at.strftime('%d.%m.%Y %H:%M') if e.created_at else '—' }}</td>
+            <td>{{ e.supplier.company_name if e.supplier else '—' }}</td>
+            <td>{{ e.material.name if e.material else '—' }}</td>
+            <td>{{ e.request_id or '—' }}</td>
+            <td>{{ e.delivery_id or '—' }}</td>
+            <td>
+              {% if e.event_type == 'request_created' %}
+                Заявка создана
+              {% elif e.event_type == 'supplier_confirmed' %}
+                Поставщик подтвердил
+              {% elif e.event_type == 'supplier_rejected' %}
+                Поставщик отказался
+              {% elif e.event_type == 'delivery_completed' %}
+                Поставка выполнена
+              {% elif e.event_type == 'delivery_cancelled' %}
+                Поставка отменена
+              {% elif e.event_type == 'price_updated' %}
+                Цена изменена
+              {% elif e.event_type == 'lead_time_updated' %}
+                Срок изменён
+              {% elif e.event_type == 'quality_issue' %}
+                Проблема качества
+              {% else %}
+                {{ e.event_type }}
+              {% endif %}
+            </td>
+            <td>{{ e.description or '—' }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">Событий пока нет</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

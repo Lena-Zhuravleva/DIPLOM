@@ -49,6 +49,7 @@
           <th>Email</th>
           <th class="center">Дата регистрации</th>
           <th class="center">Статус</th>
+          <th class="center">Действия</th>
         </tr>
       </thead>
 
@@ -66,17 +67,28 @@
             {{ user.created_at.strftime('%d.%m.%Y') if user.created_at else '—' }}
           </td>
           <td class="center">
+            <td class="center">
             {% if user.is_active %}
-              <span class="status-badge status-active">Активен</span>
+              <form method="POST" action="{{ url_for('admin.deactivate_user', user_id=user.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm"
+                        onclick="return confirm('Деактивировать пользователя?')">
+                  Деактивировать
+                </button>
+              </form>
             {% else %}
-              <span class="status-badge status-inactive">Неактивен</span>
+              <form method="POST" action="{{ url_for('admin.activate_user', user_id=user.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-primary btn-sm"
+                        onclick="return confirm('Восстановить пользователя?')">
+                  Восстановить
+                </button>
+              </form>
             {% endif %}
           </td>
         </tr>
         {% endfor %}
 
         {% if users|length == 0 %}
-          <tr><td colspan="7" class="logi-empty">Пользователей пока нет</td></tr>
+          <tr><td colspan="8" class="logi-empty">Пользователей пока нет</td></tr>
         {% endif %}
       </tbody>
     </table>

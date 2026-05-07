@@ -2,7 +2,7 @@ import datetime
 from flask import Blueprint, jsonify, request, session
 from decorators import role_required
 from extensions import db
-from models import Request, Material, Delivery, Supplier, SupplierMaterial, UnloadingFact, ProcurementPlan
+from models import Request, Material, Delivery, Supplier, SupplierMaterial, UnloadingFact, ProcurementPlan, SupplierRatingHistory, SupplierEvent
 from helpers.scheduler import (
     UNLOAD_PLACES,
     generate_slots,
@@ -44,7 +44,7 @@ def logistician_suppliers():
         return jsonify([])
 
     rows = SupplierMaterial.query.filter_by(material_id=material_id).all()
-    suppliers = [row.supplier for row in rows if row.supplier]
+    suppliers = [row.supplier for row in rows if row.supplier and row.supplier.is_active]
 
     return jsonify([{
         'id': s.id,
@@ -247,6 +247,17 @@ def logistician_create_request():
         notes=data.get('notes')
     )
     db.session.add(r)
+    db.session.flush()
+
+    event = SupplierEvent(
+        supplier_id=supplier_id,
+        material_id=material_id,
+        request_id=r.id,
+        event_type='request_created',
+        description='Логист создал заявку поставщику'
+    )
+
+    db.session.add(event)
     db.session.commit()
     return jsonify({'success': True, 'request_id': r.id})
 
@@ -254,7 +265,7 @@ def logistician_create_request():
 @api_logistician_bp.route('/api/logistician/all_suppliers')
 @role_required('logistician')
 def logistician_all_suppliers():
-    suppliers = Supplier.query.order_by(Supplier.company_name.asc()).all()
+    suppliers = Supplier.query.filter_by(is_active=True).order_by(Supplier.company_name.asc()).all()
     return jsonify([{'id': s.id, 'company_name': s.company_name} for s in suppliers])
 # все материалы
 @api_logistician_bp.route('/api/logistician/all_materials')
@@ -321,6 +332,15 @@ def delete_delivery(delivery_id):
     d = Delivery.query.get_or_404(delivery_id)
 
     d.status = 'cancelled'
+    event = SupplierEvent(
+        supplier_id=d.supplier_id,
+        material_id=d.material_id,
+        delivery_id=d.id,
+        event_type='delivery_cancelled',
+        description='Поставка отменена логистом'
+    )
+
+    db.session.add(event)
     db.session.commit()
 
     return jsonify({'success': True})
@@ -330,8 +350,78 @@ def delete_delivery(delivery_id):
 @role_required('logistician')
 def complete_delivery(delivery_id):
     d = Delivery.query.get_or_404(delivery_id)
+    data = request.json or {}
 
+    try:
+        actual_date = datetime.date.fromisoformat(data.get('actual_date'))
+        actual_time = datetime.time.fromisoformat(data.get('actual_time'))
+        quality_score = int(data.get('quality_score') or 5)
+        result_notes = data.get('result_notes')
+    except Exception:
+        return jsonify({'success': False, 'error': 'Некорректные данные факта'}), 400
+
+    planned_dt = datetime.datetime.combine(d.date, d.time_slot)
+    actual_dt = datetime.datetime.combine(actual_date, actual_time)
+
+    delay_minutes = int((actual_dt - planned_dt).total_seconds() // 60)
+    delay_minutes = max(0, delay_minutes)
+
+    supplier = d.supplier
+    if not supplier:
+        return jsonify({'success': False, 'error': 'У поставки не указан поставщик'}), 400
+
+    old_rating = float(supplier.rating or 5)
+
+    delivery_score = float(quality_score)
+
+    # штраф за задержку
+    if delay_minutes > 120:
+        delivery_score -= 1.0
+    elif delay_minutes > 60:
+        delivery_score -= 0.7
+    elif delay_minutes > 30:
+        delivery_score -= 0.3
+
+    # ограничение
+    delivery_score = max(1, min(5, delivery_score))
+
+    # новая оценка (сглаживание)
+    new_rating = old_rating * 0.8 + delivery_score * 0.2
+
+    # округление
+    new_rating = round(new_rating, 2)
+
+    supplier.rating = new_rating
+
+    d.actual_date = actual_date
+    d.actual_time = actual_time
+    d.delay_minutes = delay_minutes
+    d.quality_score = quality_score
+    d.result_notes = result_notes
     d.status = 'delivered'
+
+    history = SupplierRatingHistory(
+        supplier_id=supplier.id,
+        delivery_id=d.id,
+        old_rating=old_rating,
+        new_rating=new_rating,
+        quality_score=quality_score,
+        delay_minutes=delay_minutes,
+        reason='completion_update'
+    )
+
+    db.session.add(history)
+    event = SupplierEvent(
+        supplier_id=supplier.id,
+        material_id=d.material_id,
+        delivery_id=d.id,
+        event_type='delivery_completed',
+        event_value=quality_score,
+        description=f'Поставка выполнена. Задержка: {delay_minutes} мин, оценка качества: {quality_score}'
+    )
+
+    db.session.add(event)
+
     db.session.commit()
 
     return jsonify({'success': True})
@@ -355,3 +445,192 @@ def logistician_deliveries():
         'status': d.status,
         'notes': d.notes
     } for d in deliveries])
+
+
+# рекомендация по выбору поставщика
+@api_logistician_bp.route('/api/logistician/recommend-suppliers')
+@role_required('logistician')
+def recommend_suppliers():
+    material_id = request.args.get('material_id', type=int)
+
+    if not material_id:
+        return jsonify({'success': False, 'error': 'material_id is required'}), 400
+
+    rows = SupplierMaterial.query.filter_by(
+        material_id=material_id,
+        is_active=True
+    ).all()
+
+    candidates = []
+
+    prices = [float(r.price) for r in rows if r.price]
+    lead_times = [int(r.lead_time_days) for r in rows if r.lead_time_days]
+
+    min_price = min(prices) if prices else None
+    max_price = max(prices) if prices else None
+    min_lead = min(lead_times) if lead_times else None
+    max_lead = max(lead_times) if lead_times else None
+
+    for r in rows:
+        s = r.supplier
+        if not s or not s.is_active:
+            continue
+
+        rating = float(s.rating or 0)
+        price = float(r.price) if r.price else None
+        lead_time = int(r.lead_time_days) if r.lead_time_days else None
+
+        rating_score = rating / 5
+
+        total_deliveries = Delivery.query.filter_by(supplier_id=s.id).count()
+        completed_deliveries = Delivery.query.filter_by(
+            supplier_id=s.id,
+            status='delivered'
+        ).count()
+
+        reliability_score = completed_deliveries / total_deliveries if total_deliveries > 0 else 0.5
+
+        delivered_rows = Delivery.query.filter(
+            Delivery.supplier_id == s.id,
+            Delivery.status == 'delivered',
+            Delivery.delay_minutes.isnot(None)
+        ).all()
+
+        avg_delay = (
+            sum(d.delay_minutes for d in delivered_rows) / len(delivered_rows)
+            if delivered_rows else 0
+        )
+
+        bad_quality_count = Delivery.query.filter(
+            Delivery.supplier_id == s.id,
+            Delivery.status == 'delivered',
+            Delivery.quality_score.isnot(None),
+            Delivery.quality_score <= 2
+        ).count()
+
+        if avg_delay > 120:
+            delay_risk = 1.0
+        elif avg_delay > 60:
+            delay_risk = 0.7
+        elif avg_delay > 30:
+            delay_risk = 0.4
+        else:
+            delay_risk = 0.1
+
+        quality_risk = bad_quality_count / total_deliveries if total_deliveries > 0 else 0.0
+        risk_score = min(1.0, (delay_risk * 0.7) + (quality_risk * 0.3))
+
+        if price and min_price is not None and max_price is not None and max_price != min_price:
+            price_score = 1 - ((price - min_price) / (max_price - min_price))
+        else:
+            price_score = 0.5
+
+        if lead_time and min_lead is not None and max_lead is not None and max_lead != min_lead:
+            lead_time_score = 1 - ((lead_time - min_lead) / (max_lead - min_lead))
+        else:
+            lead_time_score = 0.5
+
+        reasons = []
+
+        if price_score > 0.8:
+            reasons.append('выгодная цена')
+
+        if rating_score > 0.8:
+            reasons.append('высокий рейтинг')
+
+        if reliability_score > 0.7:
+            reasons.append('надежный поставщик')
+
+        if risk_score > 0.5:
+            reasons.append('есть риск задержек')
+
+        if not reasons:
+            reasons.append('сбалансированные показатели')
+
+        score = (
+            0.30 * rating_score +
+            0.25 * price_score +
+            0.20 * lead_time_score +
+            0.15 * reliability_score -
+            0.10 * risk_score
+        )
+
+        candidates.append({
+            'supplier_id': s.id,
+            'supplier': s.company_name,
+            'rating': rating,
+            'price': price,
+            'lead_time_days': lead_time,
+            'score': round(score, 3),
+            'reliability_score': round(reliability_score, 3),
+            'risk_score': round(risk_score, 3),
+            'avg_delay': round(avg_delay, 1),
+            'bad_quality_count': bad_quality_count,
+            'total_deliveries': total_deliveries,
+            'completed_deliveries': completed_deliveries,
+            'reasons': reasons,
+        })
+
+    candidates.sort(key=lambda x: x['score'], reverse=True)
+
+    return jsonify({'success': True, 'items': candidates})
+
+# отображение рейтинга поставщика у логиста
+@api_logistician_bp.route('/api/logistician/supplier-summary/<int:supplier_id>')
+@role_required('logistician')
+def supplier_summary(supplier_id):
+    supplier = Supplier.query.get_or_404(supplier_id)
+
+    deliveries = Delivery.query.filter_by(supplier_id=supplier.id).all()
+
+    total = len(deliveries)
+    delivered = len([d for d in deliveries if d.status == 'delivered'])
+    cancelled = len([d for d in deliveries if d.status == 'cancelled'])
+    planned = len([d for d in deliveries if d.status == 'planned'])
+
+    reliability = delivered / total if total > 0 else 0
+
+    delays = [
+        d.delay_minutes for d in deliveries
+        if d.delay_minutes is not None and d.status == 'delivered'
+    ]
+
+    avg_delay = round(sum(delays) / len(delays), 1) if delays else 0
+
+    qualities = [
+        d.quality_score for d in deliveries
+        if d.quality_score is not None and d.status == 'delivered'
+    ]
+
+    avg_quality = round(sum(qualities) / len(qualities), 2) if qualities else 0
+
+    recent_events = (SupplierEvent.query
+        .filter_by(supplier_id=supplier.id)
+        .order_by(SupplierEvent.created_at.desc())
+        .limit(5)
+        .all())
+
+    return jsonify({
+        'success': True,
+        'supplier': {
+            'id': supplier.id,
+            'company_name': supplier.company_name,
+            'rating': float(supplier.rating or 0),
+            'delivery_zone': supplier.delivery_zone,
+            'is_active': supplier.is_active
+        },
+        'stats': {
+            'total': total,
+            'delivered': delivered,
+            'cancelled': cancelled,
+            'planned': planned,
+            'reliability': round(reliability, 2),
+            'avg_delay': avg_delay,
+            'avg_quality': avg_quality
+        },
+        'events': [{
+            'event_type': e.event_type,
+            'description': e.description,
+            'created_at': e.created_at.strftime('%d.%m.%Y %H:%M') if e.created_at else None
+        } for e in recent_events]
+    })

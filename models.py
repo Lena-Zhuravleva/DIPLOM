@@ -38,6 +38,8 @@ class Supplier(db.Model):
     contact_person = db.Column(db.String(100))
     delivery_time_days = db.Column(db.Integer, default=1)
 
+    is_active = db.Column(db.Boolean, default=True)
+
     materials = db.relationship(
         "Material",
         secondary="supplier_materials",
@@ -85,6 +87,11 @@ class Delivery(db.Model):
     quantity = db.Column(db.Integer, nullable=False)
     status = db.Column(db.Enum('planned', 'in_transit', 'delivered', 'cancelled'), default='planned')
     notes = db.Column(db.Text)
+    actual_date = db.Column(db.Date, nullable=True)
+    actual_time = db.Column(db.Time, nullable=True)
+    quality_score = db.Column(db.Integer, nullable=True)
+    delay_minutes = db.Column(db.Integer, nullable=True)
+    result_notes = db.Column(db.Text, nullable=True)
 
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'))
     created_at = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())
@@ -197,6 +204,28 @@ class ProcurementPlan(db.Model):
     material = db.relationship('Material', backref='procurement_plan_items')
     creator = db.relationship('User', backref='created_procurement_plan_items', foreign_keys=[created_by])
 
+
+#таблица рейтинга
+class SupplierRatingHistory(db.Model):
+    __tablename__ = 'supplier_rating_history'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    delivery_id = db.Column(db.Integer, db.ForeignKey('deliveries.id'), nullable=True)
+
+    old_rating = db.Column(db.Numeric(3, 2), nullable=True)
+    new_rating = db.Column(db.Numeric(3, 2), nullable=False)
+
+    quality_score = db.Column(db.Integer, nullable=True)
+    delay_minutes = db.Column(db.Integer, nullable=True)
+
+    reason = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())
+
+    supplier = db.relationship('Supplier')
+    delivery = db.relationship('Delivery')
+
 # правильная связующая таблица: составной PK
 class SupplierMaterial(db.Model):
     __tablename__ = 'supplier_materials'
@@ -204,5 +233,45 @@ class SupplierMaterial(db.Model):
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), primary_key=True)
     material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), primary_key=True)
 
+    price = db.Column(db.Numeric(10, 2), nullable=True)
+    lead_time_days = db.Column(db.Integer, nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    price_updated_at = db.Column(db.TIMESTAMP, nullable=True)
+
     supplier = db.relationship('Supplier', backref='supplier_materials')
     material = db.relationship('Material', backref='supplier_materials')
+
+
+# для рейтинга поставщика
+class SupplierEvent(db.Model):
+    __tablename__ = 'supplier_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), nullable=False)
+    material_id = db.Column(db.Integer, db.ForeignKey('materials.id'))
+    request_id = db.Column(db.Integer, db.ForeignKey('requests.id'))
+    delivery_id = db.Column(db.Integer, db.ForeignKey('deliveries.id'))
+
+    event_type = db.Column(db.Enum(
+        'request_created',
+        'supplier_confirmed',
+        'supplier_rejected',
+        'delivery_completed',
+        'delivery_cancelled',
+        'price_updated',
+        'lead_time_updated',
+        'quality_issue'
+    ), nullable=False)
+
+    event_value = db.Column(db.Numeric(10, 2))
+    old_value = db.Column(db.Numeric(10, 2))
+    new_value = db.Column(db.Numeric(10, 2))
+
+    description = db.Column(db.Text)
+    created_at = db.Column(db.TIMESTAMP, server_default=db.func.current_timestamp())
+
+    supplier = db.relationship('Supplier')
+    material = db.relationship('Material')
+    request = db.relationship('Request')
+    delivery = db.relationship('Delivery')

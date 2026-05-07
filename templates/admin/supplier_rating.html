@@ -1,10 +1,121 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "layouts/app.html" %}
+{% block title %}Рейтинг поставщиков{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="card">
+    <div class="card-header">
+      <h2><i class="fas fa-star"></i> Рейтинг поставщиков</h2>
+      <p class="register-subtitle">
+        Текущий рейтинг формируется на основе качества и фактического времени выполненных поставок.
+      </p>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Поставщик</th>
+            <th>Рейтинг</th>
+            <th>Всего поставок</th>
+            <th>Выполнено</th>
+            <th>Отменено</th>
+            <th>Средняя задержка</th>
+            <th>Действия</th>
+
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in stats %}
+          <tr>
+            <td>{{ row.supplier.company_name }}</td>
+            <td>
+              <span class="status-badge status-normal">
+                {{ row.supplier.rating }}
+              </span>
+            </td>
+            <td>{{ row.total }}</td>
+            <td>{{ row.delivered }}</td>
+            <td>{{ row.cancelled }}</td>
+            <td>
+              {% if row.avg_delay is not none %}
+                {{ row.avg_delay }} мин
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>
+              <a href="{{ url_for('admin.supplier_analytics_page', supplier_id=row.supplier.id) }}"
+                 class="btn btn-secondary btn-sm">
+                Подробнее
+              </a>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7">Поставщиков пока нет</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header">
+      <h2><i class="fas fa-history"></i> История изменения рейтинга</h2>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Поставщик</th>
+            <th>ID поставки</th>
+            <th>Оценка качества</th>
+            <th>Задержка</th>
+            <th>Было</th>
+            <th>Стало</th>
+            <th>Причина</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h in history %}
+          <tr>
+            <td>{{ h.created_at.strftime('%d.%m.%Y %H:%M') if h.created_at else '—' }}</td>
+            <td>{{ h.supplier.company_name if h.supplier else '—' }}</td>
+            <td>{{ h.delivery_id or '—' }}</td>
+            <td>{{ h.quality_score or '—' }}</td>
+            <td>
+              {% if h.delay_minutes is not none %}
+                {{ h.delay_minutes }} мин
+              {% else %}
+                —
+              {% endif %}
+            </td>
+            <td>{{ h.old_rating or '—' }}</td>
+            <td>{{ h.new_rating }}</td>
+            <td>
+              {% if h.reason == 'completion_update' %}
+                Выполнение поставки
+              {% elif h.reason == 'supplier_rejected_request' %}
+                Отказ поставщика
+              {% else %}
+                {{ h.reason or '—' }}
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8">История пока пустая</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

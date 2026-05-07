@@ -1,7 +1,7 @@
 import datetime
 from flask import Blueprint, request, jsonify, session
 from decorators import role_required
-from models import Delivery, Request, Supplier, SupplierMaterial
+from models import Delivery, Request, Supplier, SupplierMaterial, SupplierRatingHistory, SupplierEvent
 from extensions import db
 from helpers.scheduler import generate_slots, time_to_minutes, overlaps, UNLOAD_PLACES, slot_busy
 
@@ -74,18 +74,88 @@ def supplier_materials():
         return jsonify({'success': False, 'error': 'Supplier not found'}), 404
 
     rows = SupplierMaterial.query.filter_by(supplier_id=supplier.id).all()
-    mats = [r.material for r in rows if r.material]
+
+    today = datetime.datetime.now()
+
+    items = []
+    for r in rows:
+        if not r.material:
+            continue
+
+        can_update = True
+        next_update_date = None
+
+        if r.price_updated_at:
+            next_update = r.price_updated_at + datetime.timedelta(days=7)
+            if today < next_update:
+                can_update = False
+                next_update_date = next_update.strftime('%d.%m.%Y')
+
+        items.append({
+            'id': r.material.id,
+            'name': r.material.name,
+            'category': r.material.category,
+            'unit': r.material.unit,
+            'price': float(r.price) if r.price is not None else None,
+            'lead_time_days': r.lead_time_days,
+            'price_updated_at': r.price_updated_at.strftime('%d.%m.%Y %H:%M') if r.price_updated_at else None,
+            'can_update': can_update,
+            'next_update_date': next_update_date
+        })
 
     return jsonify({
         'success': True,
-        'items': [{
-            'id': m.id,
-            'name': m.name,
-            'category': m.category,
-            'unit': m.unit
-        } for m in mats]
+        'items': items
     })
 
+# роут обновления цены и срока материала поставщика
+@api_supplier_bp.post('/materials/<int:material_id>/update_terms')
+@role_required('supplier')
+def supplier_update_material_terms(material_id):
+    supplier = Supplier.query.filter_by(user_id=session['user_id']).first()
+    if not supplier:
+        return jsonify({'success': False, 'error': 'Supplier not found'}), 404
+
+    row = SupplierMaterial.query.filter_by(
+        supplier_id=supplier.id,
+        material_id=material_id
+    ).first()
+
+    if not row:
+        return jsonify({'success': False, 'error': 'Материал не привязан к поставщику'}), 404
+
+    now = datetime.datetime.now()
+
+    if row.price_updated_at:
+        next_update = row.price_updated_at + datetime.timedelta(days=7)
+        if now < next_update:
+            return jsonify({
+                'success': False,
+                'error': f'Цена и срок уже обновлялись недавно. Следующее изменение доступно после {next_update.strftime("%d.%m.%Y")}'
+            }), 400
+
+    data = request.json or {}
+
+    try:
+        price = float(data.get('price'))
+        lead_time_days = int(data.get('lead_time_days'))
+
+        if price <= 0:
+            return jsonify({'success': False, 'error': 'Цена должна быть больше 0'}), 400
+
+        if lead_time_days <= 0:
+            return jsonify({'success': False, 'error': 'Срок должен быть больше 0'}), 400
+
+    except Exception:
+        return jsonify({'success': False, 'error': 'Некорректные цена или срок'}), 400
+
+    row.price = price
+    row.lead_time_days = lead_time_days
+    row.price_updated_at = now
+
+    db.session.commit()
+
+    return jsonify({'success': True})
 
 @api_supplier_bp.get('/requests')
 @role_required('supplier')
@@ -153,6 +223,35 @@ def supplier_reject_request(req_id):
         return jsonify({'success': False, 'error': 'Заявка уже обработана'}), 400
 
     r.status = 'rejected_supplier'
+    old_rating = float(supplier.rating or 5)
+
+    # штраф за отказ поставщика
+    new_rating = round(max(1, old_rating - 0.2), 2)
+
+    supplier.rating = new_rating
+
+    history = SupplierRatingHistory(
+        supplier_id=supplier.id,
+        delivery_id=None,
+        old_rating=old_rating,
+        new_rating=new_rating,
+        quality_score=None,
+        delay_minutes=None,
+        reason='supplier_rejected_request'
+    )
+
+    db.session.add(history)
+
+    event = SupplierEvent(
+        supplier_id=supplier.id,
+        material_id=r.material_id,
+        request_id=r.id,
+        event_type='supplier_rejected',
+        description='Поставщик отказался от заявки'
+    )
+
+    db.session.add(event)
+
     db.session.commit()
 
     return jsonify({'success': True})
@@ -219,6 +318,18 @@ def supplier_confirm(req_id):
     )
 
     db.session.add(delivery)
+    db.session.flush()
+
+    event = SupplierEvent(
+        supplier_id=supplier.id,
+        material_id=r.material_id,
+        request_id=r.id,
+        delivery_id=delivery.id,
+        event_type='supplier_confirmed',
+        description='Поставщик подтвердил заявку и выбрал время'
+    )
+
+    db.session.add(event)
     db.session.commit()
 
     return jsonify({'success': True})
@@ -252,6 +363,18 @@ def supplier_accept(req_id):
     )
 
     db.session.add(delivery)
+    db.session.flush()
+
+    event = SupplierEvent(
+        supplier_id=supplier.id,
+        material_id=r.material_id,
+        request_id=r.id,
+        delivery_id=delivery.id,
+        event_type='supplier_confirmed',
+        description='Поставщик подтвердил заявку (без изменения времени)'
+    )
+
+    db.session.add(event)
     db.session.commit()
 
     return jsonify({'success': True})

@@ -13,6 +13,10 @@ def login():
         password = request.form.get('password', '')
 
         user = User.query.filter_by(username=username, is_active=True).first()
+        if user and not user.is_active:
+            flash('Аккаунт деактивирован. Обратитесь к администратору.', 'error')
+            return render_template('auth/login.html')
+
         if user and user.check_password(password):
             session['user_id'] = user.id
             session['username'] = user.username

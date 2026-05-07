@@ -177,6 +177,13 @@
         </div>
 
         <div class="form-group">
+          <label>Рекомендации системы:</label>
+          <div id="supplierRecommendations" class="recommend-box">
+            Выберите материал, чтобы увидеть рекомендации
+          </div>
+        </div>
+
+        <div class="form-group">
           <label>Количество:</label>
           <input type="number" id="cmQuantity" class="form-control" min="1" value="1" required>
         </div>
@@ -234,5 +241,73 @@
   </div>
 </div>
 
+<!-- Модалка для оуенки поставщика при выполнении поставки -->
+<div class="modal" id="completeModal" style="display:none;">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h3>Завершение поставки</h3>
+      <button type="button" class="modal-close" data-close="completeModal">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <input type="hidden" id="completeDeliveryId">
+
+      <div class="form-group">
+        <label>Фактическая дата:</label>
+        <input type="date" id="actualDate" class="form-control" required>
+      </div>
+
+      <div class="form-group">
+        <label>Фактическое время:</label>
+        <input type="time" id="actualTime" class="form-control" required>
+      </div>
+
+      <div class="form-group">
+        <label>Оценка качества:</label>
+        <select id="qualityScore" class="form-control">
+          <option value="5">5 — отлично</option>
+          <option value="4">4 — хорошо</option>
+          <option value="3">3 — нормально</option>
+          <option value="2">2 — плохо</option>
+          <option value="1">1 — очень плохо</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Комментарий:</label>
+        <textarea id="resultNotes" class="form-control" rows="3"></textarea>
+      </div>
+
+      <div class="hint" id="completeErr"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-close="completeModal">Отмена</button>
+      <button type="button" class="btn btn-primary" id="completeSaveBtn">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+  <!-- ===== МОДАЛКА: мини-аналитика поставщика ===== -->
+<div class="modal" id="supplierSummaryModal" style="display:none;">
+  <div class="modal-content modal-sm">
+    <div class="modal-header">
+      <h3>Анализ поставщика</h3>
+      <button type="button" class="modal-close" data-close="supplierSummaryModal">&times;</button>
+    </div>
+
+    <div class="modal-body">
+      <div id="supplierSummaryContent">
+        Загрузка…
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn btn-secondary" data-close="supplierSummaryModal">
+        Закрыть
+      </button>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

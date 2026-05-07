@@ -51,6 +51,8 @@
           <th class="center">Зона</th>
           <th>Контакт</th>
           <th class="num">Срок</th>
+          <th class="center">Статус</th>
+          <th class="center">Действия</th>
         </tr>
       </thead>
 
@@ -62,11 +64,35 @@
           <td class="center">{{ s.delivery_zone }}</td>
           <td title="{{ s.contact_person or '' }}">{{ s.contact_person or '—' }}</td>
           <td class="num">{{ s.delivery_time_days }} дн.</td>
+          <td class="center">
+            {% if s.is_active %}
+              <span class="status-badge status-active">Активен</span>
+            {% else %}
+              <span class="status-badge status-inactive">Неактивен</span>
+            {% endif %}
+          </td>
+          <td class="center">
+            {% if s.is_active %}
+              <form method="POST" action="{{ url_for('admin.deactivate_supplier', supplier_id=s.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm"
+                        onclick="return confirm('Деактивировать поставщика?')">
+                  Деактивировать
+                </button>
+              </form>
+            {% else %}
+              <form method="POST" action="{{ url_for('admin.activate_supplier', supplier_id=s.id) }}" style="display:inline;">
+                <button type="submit" class="btn btn-primary btn-sm"
+                        onclick="return confirm('Восстановить поставщика?')">
+                  Восстановить
+                </button>
+              </form>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
 
         {% if suppliers|length == 0 %}
-          <tr><td colspan="5" class="logi-empty">Поставщиков пока нет</td></tr>
+          <tr><td colspan="7" class="logi-empty">Поставщиков пока нет</td></tr>
         {% endif %}
       </tbody>
     </table>

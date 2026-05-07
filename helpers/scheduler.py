@@ -36,7 +36,10 @@ def supplier_candidates(material_status: str):
     else:
         zones = ['local', 'regional', 'international']
 
-    q = Supplier.query.filter(Supplier.delivery_zone.in_(zones))
+    q = Supplier.query.filter(
+        Supplier.delivery_zone.in_(zones),
+        Supplier.is_active == True
+    )
     suppliers = q.all()
 
     zone_rank = {z: i for i, z in enumerate(zones)}

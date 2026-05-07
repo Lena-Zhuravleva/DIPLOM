@@ -38,6 +38,7 @@ CREATE TABLE suppliers (
   specialization VARCHAR(100),
   contact_person VARCHAR(100),
   delivery_time_days INT DEFAULT 1,
+  is_active BOOLEAN DEFAULT TRUE,
   CONSTRAINT fk_suppliers_user
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
@@ -125,6 +126,12 @@ DROP TABLE IF EXISTS supplier_materials;
 CREATE TABLE supplier_materials (
   supplier_id INT NOT NULL,
   material_id INT NOT NULL,
+
+  price DECIMAL(10,2) NULL,
+  lead_time_days INT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  price_updated_at TIMESTAMP NULL,
+
   PRIMARY KEY (supplier_id, material_id),
 
   CONSTRAINT fk_supplier_materials_supplier
@@ -138,33 +145,38 @@ CREATE TABLE supplier_materials (
 DROP TABLE IF EXISTS deliveries;
 CREATE TABLE deliveries (
   id INT PRIMARY KEY AUTO_INCREMENT,
+
+  request_id INT,
+  supplier_id INT,
+  material_id INT,
+
   date DATE NOT NULL,
   time_slot TIME NOT NULL,
-  duration_min INT NOT NULL DEFAULT 15,
+  duration_min INT DEFAULT 30,
 
-  -- Место выгрузки (если нужно)
-  unload_place VARCHAR(20) NULL,
-
-  supplier_id INT NULL,
-  material_id INT NULL,
-  quantity INT NOT NULL,
+  quantity DECIMAL(10,2),
+  unload_place VARCHAR(100),
 
   status ENUM('planned','in_transit','delivered','cancelled') DEFAULT 'planned',
-  notes TEXT,
 
-  created_by INT NULL,
+  -- === ФАКТИЧЕСКИЕ ДАННЫЕ (для аналитики и ML) ===
+  actual_date DATE NULL,
+  actual_time TIME NULL,
+
+  delay_minutes INT NULL,       -- отклонение от планового времени
+  quality_score INT NULL,       -- оценка 1-5
+  result_notes TEXT NULL,       -- комментарий логиста
+
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-  INDEX idx_deliveries_date (date),
-  INDEX idx_deliveries_date_time (date, time_slot),
+  CONSTRAINT fk_deliveries_request
+    FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE SET NULL,
 
   CONSTRAINT fk_deliveries_supplier
     FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE SET NULL,
+
   CONSTRAINT fk_deliveries_material
-    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE SET NULL,
-  CONSTRAINT fk_deliveries_created_by
-    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
 
 -- ===== unloading_facts (ФАКТ разгрузки) =====
@@ -193,3 +205,66 @@ CREATE TABLE unloading_facts (
 ) ENGINE=InnoDB;
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+
+CREATE TABLE supplier_rating_history (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+
+  supplier_id INT NOT NULL,
+  delivery_id INT NULL,
+
+  old_rating DECIMAL(3,2) NULL,
+  new_rating DECIMAL(3,2) NOT NULL,
+
+  quality_score INT NULL,
+  delay_minutes INT NULL,
+
+  reason VARCHAR(255),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_rating_supplier
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+
+  CONSTRAINT fk_rating_delivery
+    FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- журнал событий поставщика --
+CREATE TABLE supplier_events (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+
+  supplier_id INT NOT NULL,
+  material_id INT NULL,
+  request_id INT NULL,
+  delivery_id INT NULL,
+
+  event_type ENUM(
+    'request_created',
+    'supplier_confirmed',
+    'supplier_rejected',
+    'delivery_completed',
+    'delivery_cancelled',
+    'price_updated',
+    'lead_time_updated',
+    'quality_issue'
+  ) NOT NULL,
+
+  event_value DECIMAL(10,2) NULL,
+  old_value DECIMAL(10,2) NULL,
+  new_value DECIMAL(10,2) NULL,
+
+  description TEXT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+  CONSTRAINT fk_supplier_events_supplier
+    FOREIGN KEY (supplier_id) REFERENCES suppliers(id) ON DELETE CASCADE,
+
+  CONSTRAINT fk_supplier_events_material
+    FOREIGN KEY (material_id) REFERENCES materials(id) ON DELETE SET NULL,
+
+  CONSTRAINT fk_supplier_events_request
+    FOREIGN KEY (request_id) REFERENCES requests(id) ON DELETE SET NULL,
+
+  CONSTRAINT fk_supplier_events_delivery
+    FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE SET NULL
+) ENGINE=InnoDB;

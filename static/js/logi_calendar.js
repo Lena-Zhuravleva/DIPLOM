@@ -195,6 +195,9 @@ async function openCreateModal(date, time, place) {
 
   await loadSuppliersForCreateModal();
   await loadAllMaterialsForCreateModal();
+  if ($('supplierRecommendations')) {
+    $('supplierRecommendations').innerHTML = 'Выберите материал, чтобы увидеть рекомендации';
+  }
 
   openModal('createModal');
 }
@@ -518,24 +521,61 @@ document.addEventListener('click', async (e) => {
   const btn = e.target.closest('.js-complete-delivery');
   if (!btn) return;
 
-  const ok = confirm('Отметить поставку как выполненную?');
-  if (!ok) return;
-
   const id = btn.getAttribute('data-id');
 
-  const res = await fetch(`/api/logistician/deliveries/${id}/complete`, {
-    method: 'POST'
-  });
+  document.getElementById('completeDeliveryId').value = id;
 
-  const data = await res.json();
+  const today = new Date().toISOString().slice(0, 10);
+  document.getElementById('actualDate').value = today;
 
-  if (data.success) {
-    const d = $('calendarDate')?.value;
-    if (d) await loadCalendar(d);
-  } else {
-    alert(data.error || 'Ошибка при завершении поставки');
-  }
+  const now = new Date();
+  document.getElementById('actualTime').value =
+    String(now.getHours()).padStart(2, '0') + ':' +
+    String(now.getMinutes()).padStart(2, '0');
+
+  document.getElementById('qualityScore').value = '5';
+  document.getElementById('resultNotes').value = '';
+  document.getElementById('completeErr').textContent = '';
+
+  openModal('completeModal');
 });
+// Обработчик сохранения поставки
+const completeSaveBtn = document.getElementById('completeSaveBtn');
+
+if (completeSaveBtn) {
+  completeSaveBtn.addEventListener('click', async () => {
+    const id = document.getElementById('completeDeliveryId').value;
+
+    const payload = {
+      actual_date: document.getElementById('actualDate').value,
+      actual_time: document.getElementById('actualTime').value,
+      quality_score: document.getElementById('qualityScore').value,
+      result_notes: document.getElementById('resultNotes').value
+    };
+
+    if (!payload.actual_date || !payload.actual_time) {
+      document.getElementById('completeErr').textContent = 'Укажите фактические дату и время.';
+      return;
+    }
+
+    const res = await fetch(`/api/logistician/deliveries/${id}/complete`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      closeModal('completeModal');
+
+      const d = document.getElementById('calendarDate')?.value;
+      if (d) await loadCalendar(d);
+    } else {
+      document.getElementById('completeErr').textContent = data.error || 'Ошибка сохранения';
+    }
+  });
+}
 //обработчик удаления поставки
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('.js-delete-delivery');
@@ -589,3 +629,158 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCalendar($('calendarDate').value);
   }
 });
+
+//функция для расчета выгодного поставщика
+async function loadSupplierRecommendations(materialId) {
+  const box = $('supplierRecommendations');
+  if (!box) return;
+
+  if (!materialId) {
+    box.innerHTML = 'Выберите материал, чтобы увидеть рекомендации';
+    return;
+  }
+
+  box.innerHTML = 'Расчёт рекомендаций…';
+
+  const res = await fetch(`/api/logistician/recommend-suppliers?material_id=${materialId}`);
+  const data = await res.json();
+
+  if (!data.success || !data.items.length) {
+    box.innerHTML = 'Нет данных для рекомендации';
+    return;
+  }
+
+  box.innerHTML = data.items.map((x, index) => `
+    <div class="recommend-item ${index === 0 ? 'best' : ''}">
+      <div>
+        <strong>${index + 1}. ${escapeHtml(x.supplier)}</strong>
+        ${index === 0 ? '<span class="status-badge status-normal">Рекомендуется</span>' : ''}
+      </div>
+      <div class="recommend-meta">
+        Рейтинг: ${x.rating ?? '—'} |
+        Цена: ${x.price ?? '—'} |
+        Срок: ${x.lead_time_days ?? '—'} дн. |
+        Надёжность: ${x.reliability_score !== undefined ? Math.round(x.reliability_score * 100) + '%' : '—'} |
+        Score: ${x.score}
+        Риск: ${x.risk_score !== undefined ? Math.round(x.risk_score * 100) + '%' : '—'} |
+        Средняя задержка: ${x.avg_delay ?? '—'} мин |
+      </div>
+      ${x.reasons && x.reasons.length
+          ? `<div class="recommend-reasons">
+              ${x.reasons.map(r => `<span class="status-badge status-planned">${escapeHtml(r)}</span>`).join(' ')}
+            </div>`
+          : ''}
+      <div class="recommend-actions">
+          <button type="button" class="btn btn-secondary btn-sm"
+            onclick="selectRecommendedSupplier(${x.supplier_id})">
+            Выбрать
+          </button>
+
+          <button type="button" class="btn btn-primary btn-sm"
+            onclick="openSupplierSummary(${x.supplier_id})">
+            Анализ
+          </button>
+        </div>
+    </div>
+  `).join('');
+}
+
+//выбор рекомендованного поставщика
+function selectRecommendedSupplier(supplierId) {
+  const select = $('cmSupplier');
+  if (!select) return;
+
+  select.value = String(supplierId);
+}
+
+document.addEventListener('change', async (e) => {
+  if (e.target && e.target.id === 'cmMaterialId') {
+    await loadSupplierRecommendations(e.target.value);
+  }
+});
+
+//функция открытия аналитики
+function eventTypeText(type) {
+  if (type === 'request_created') return 'Заявка создана';
+  if (type === 'supplier_confirmed') return 'Поставщик подтвердил';
+  if (type === 'supplier_rejected') return 'Поставщик отказался';
+  if (type === 'delivery_completed') return 'Поставка выполнена';
+  if (type === 'delivery_cancelled') return 'Поставка отменена';
+  if (type === 'price_updated') return 'Цена изменена';
+  if (type === 'lead_time_updated') return 'Срок изменён';
+  if (type === 'quality_issue') return 'Проблема качества';
+  return type || '—';
+}
+
+async function openSupplierSummary(supplierId) {
+  const box = $('supplierSummaryContent');
+  if (!box) return;
+
+  box.innerHTML = 'Загрузка…';
+  openModal('supplierSummaryModal');
+
+  const res = await fetch(`/api/logistician/supplier-summary/${supplierId}`);
+  const data = await res.json();
+
+  if (!data.success) {
+    box.innerHTML = `<div class="logi-error">${escapeHtml(data.error || 'Ошибка загрузки')}</div>`;
+    return;
+  }
+
+  const s = data.supplier;
+  const st = data.stats;
+
+  const eventsHtml = data.events && data.events.length
+    ? data.events.map(e => `
+        <div class="supplier-summary-event">
+          <div><strong>${escapeHtml(eventTypeText(e.event_type))}</strong></div>
+          <div class="supplier-summary-muted">${escapeHtml(e.created_at || '—')}</div>
+          <div>${escapeHtml(e.description || '—')}</div>
+        </div>
+      `).join('')
+    : '<div class="supplier-summary-muted">Событий пока нет</div>';
+
+  box.innerHTML = `
+    <div class="supplier-summary-head">
+      <h4>${escapeHtml(s.company_name)}</h4>
+      <div class="supplier-summary-rating">${s.rating}</div>
+    </div>
+
+    <div class="supplier-summary-grid">
+      <div class="supplier-summary-card">
+        <div class="supplier-summary-label">Надёжность</div>
+        <div class="supplier-summary-value">${Math.round(st.reliability * 100)}%</div>
+      </div>
+
+      <div class="supplier-summary-card">
+        <div class="supplier-summary-label">Всего поставок</div>
+        <div class="supplier-summary-value">${st.total}</div>
+      </div>
+
+      <div class="supplier-summary-card">
+        <div class="supplier-summary-label">Выполнено</div>
+        <div class="supplier-summary-value">${st.delivered}</div>
+      </div>
+
+      <div class="supplier-summary-card">
+        <div class="supplier-summary-label">Отменено</div>
+        <div class="supplier-summary-value">${st.cancelled}</div>
+      </div>
+
+      <div class="supplier-summary-card">
+        <div class="supplier-summary-label">Средняя задержка</div>
+        <div class="supplier-summary-value">${st.avg_delay} мин</div>
+      </div>
+
+      <div class="supplier-summary-card">
+        <div class="supplier-summary-label">Средняя оценка</div>
+        <div class="supplier-summary-value">${st.avg_quality || '—'}</div>
+      </div>
+    </div>
+
+    <div class="supplier-summary-section">
+      <h4>Последние события</h4>
+      ${eventsHtml}
+    </div>
+  `;
+}
