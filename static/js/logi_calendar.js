@@ -642,28 +642,41 @@ async function loadSupplierRecommendations(materialId) {
 
   box.innerHTML = 'Расчёт рекомендаций…';
 
-  const res = await fetch(`/api/logistician/recommend-suppliers?material_id=${materialId}`);
+  const scenario = $('optimizationScenario')?.value || 'balanced';
+
+  const res = await fetch(
+    `/api/logistician/recommend-suppliers?material_id=${materialId}&scenario=${scenario}`
+  );
   const data = await res.json();
 
   if (!data.success || !data.items.length) {
     box.innerHTML = 'Нет данных для рекомендации';
     return;
   }
-
-  box.innerHTML = data.items.map((x, index) => `
+  const weightsHtml = data.weights ? `
+      <div class="recommend-weights">
+        <strong>Веса модели:</strong>
+        Рейтинг: ${Math.round(data.weights.rating * 100)}%,
+        Цена: ${Math.round(data.weights.price * 100)}%,
+        Срок: ${Math.round(data.weights.lead_time * 100)}%,
+        Надёжность: ${Math.round(data.weights.reliability * 100)}%,
+        Риск: ${Math.round(data.weights.risk * 100)}%
+      </div>
+    ` : '';
+  box.innerHTML = weightsHtml + data.items.map((x, index) => `
     <div class="recommend-item ${index === 0 ? 'best' : ''}">
       <div>
         <strong>${index + 1}. ${escapeHtml(x.supplier)}</strong>
         ${index === 0 ? '<span class="status-badge status-normal">Рекомендуется</span>' : ''}
       </div>
       <div class="recommend-meta">
-        Рейтинг: ${x.rating ?? '—'} |
-        Цена: ${x.price ?? '—'} |
-        Срок: ${x.lead_time_days ?? '—'} дн. |
-        Надёжность: ${x.reliability_score !== undefined ? Math.round(x.reliability_score * 100) + '%' : '—'} |
-        Score: ${x.score}
-        Риск: ${x.risk_score !== undefined ? Math.round(x.risk_score * 100) + '%' : '—'} |
-        Средняя задержка: ${x.avg_delay ?? '—'} мин |
+        <span>Рейтинг: ${x.rating ?? '—'}</span>
+        <span>Цена: ${x.price ?? '—'}</span>
+        <span>Срок: ${x.lead_time_days ?? '—'} дн.</span>
+        <span>Надёжность: ${x.reliability_score !== undefined ? Math.round(x.reliability_score * 100) + '%' : '—'}</span>
+        <span>Риск: ${x.risk_score !== undefined ? Math.round(x.risk_score * 100) + '%' : '—'}</span>
+        <span>Средняя задержка: ${x.avg_delay ?? '—'} мин</span>
+        <span><strong>Итог: ${x.score}%</strong></span>
       </div>
       ${x.reasons && x.reasons.length
           ? `<div class="recommend-reasons">
@@ -696,6 +709,15 @@ function selectRecommendedSupplier(supplierId) {
 document.addEventListener('change', async (e) => {
   if (e.target && e.target.id === 'cmMaterialId') {
     await loadSupplierRecommendations(e.target.value);
+  }
+});
+
+document.addEventListener('change', async (e) => {
+  if (e.target && e.target.id === 'optimizationScenario') {
+    const materialId = $('cmMaterialId')?.value;
+    if (materialId) {
+      await loadSupplierRecommendations(materialId);
+    }
   }
 });
 

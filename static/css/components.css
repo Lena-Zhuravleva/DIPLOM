@@ -430,35 +430,62 @@
 .recommend-box {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 10px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid rgba(0,0,0,.08);
 }
 
 .recommend-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(0,0,0,0.1);
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
   margin-bottom: 10px;
-}
-
-.recommend-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  font-size: 13px;
 }
 
 .recommend-item.best {
   border-color: #16a34a;
   background: #f0fdf4;
 }
+
+.recommend-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: .85;
+}
+
+.recommend-meta span {
+  white-space: nowrap;
+}
+
+.recommend-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .recommend-actions {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-top: 8px;
+}
+.recommend-weights {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #eef2ff;
+  border: 1px solid rgba(0,0,0,.06);
+  font-size: 13px;
+  margin-bottom: 10px;
+  line-height: 1.5;
 }
 
 .supplier-summary-head {

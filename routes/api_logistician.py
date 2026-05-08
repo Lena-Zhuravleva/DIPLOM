@@ -1,4 +1,5 @@
 import datetime
+import math
 from flask import Blueprint, jsonify, request, session
 from decorators import role_required
 from extensions import db
@@ -446,12 +447,76 @@ def logistician_deliveries():
         'notes': d.notes
     } for d in deliveries])
 
+#функция расчета AHP (весов)
+def calculate_ahp_weights(matrix):
+    n = len(matrix)
 
+    geo_means = []
+    for row in matrix:
+        product = 1
+        for value in row:
+            product *= value
+        geo_means.append(product ** (1 / n))
+
+    total = sum(geo_means)
+
+    if total == 0:
+        return [1 / n] * n
+
+    return [gm / total for gm in geo_means]
+
+#матрица попарных сравнений в зависимости от того, что нужнее
+def get_ahp_matrix_by_scenario(scenario):
+    """
+    Порядок критериев:
+    0 - рейтинг
+    1 - цена
+    2 - срок
+    3 - надежность
+    4 - риск
+    """
+
+    matrices = {
+        "balanced": [
+            [1,   2,   2,   1,   3],
+            [1/2, 1,   2,   1/2, 2],
+            [1/2, 1/2, 1,   1/2, 2],
+            [1,   2,   2,   1,   3],
+            [1/3, 1/2, 1/2, 1/3, 1],
+        ],
+
+        "low_cost": [
+            [1,   1/3, 1,   1/2, 2],
+            [3,   1,   3,   2,   4],
+            [1,   1/3, 1,   1/2, 2],
+            [2,   1/2, 2,   1,   3],
+            [1/2, 1/4, 1/2, 1/3, 1],
+        ],
+
+        "fast_delivery": [
+            [1,   1,   1/3, 1/2, 2],
+            [1,   1,   1/3, 1/2, 2],
+            [3,   3,   1,   2,   4],
+            [2,   2,   1/2, 1,   3],
+            [1/2, 1/2, 1/4, 1/3, 1],
+        ],
+
+        "reliable": [
+            [1,   2,   2,   1/2, 1/2],
+            [1/2, 1,   1,   1/3, 1/3],
+            [1/2, 1,   1,   1/3, 1/3],
+            [2,   3,   3,   1,   2],
+            [2,   3,   3,   1/2, 1],
+        ],
+    }
+
+    return matrices.get(scenario, matrices["balanced"])
 # рекомендация по выбору поставщика
 @api_logistician_bp.route('/api/logistician/recommend-suppliers')
 @role_required('logistician')
 def recommend_suppliers():
     material_id = request.args.get('material_id', type=int)
+    scenario = request.args.get('scenario', 'balanced')
 
     if not material_id:
         return jsonify({'success': False, 'error': 'material_id is required'}), 400
@@ -468,41 +533,84 @@ def recommend_suppliers():
 
     min_price = min(prices) if prices else None
     max_price = max(prices) if prices else None
+
     min_lead = min(lead_times) if lead_times else None
     max_lead = max(lead_times) if lead_times else None
 
+    # ===== AHP / МАИ: матрица попарных сравнений критериев =====
+
+    ahp_matrix = get_ahp_matrix_by_scenario(scenario)
+    weights = calculate_ahp_weights(ahp_matrix)
+
+    w_rating = weights[0]
+    w_price = weights[1]
+    w_lead = weights[2]
+    w_reliability = weights[3]
+    w_risk = weights[4]
+
     for r in rows:
-        s = r.supplier
-        if not s or not s.is_active:
+        supplier = r.supplier
+
+        if not supplier or not supplier.is_active:
             continue
 
-        rating = float(s.rating or 0)
-        price = float(r.price) if r.price else None
-        lead_time = int(r.lead_time_days) if r.lead_time_days else None
+        rating = float(supplier.rating or 0)
+        price = float(r.price) if r.price is not None else None
+        lead_time = int(r.lead_time_days) if r.lead_time_days is not None else None
 
+        # 1. Нормализация рейтинга
+        # rating обычно от 1 до 5, приводим к 0..1
         rating_score = rating / 5
+        rating_score = max(0, min(1, rating_score))
 
-        total_deliveries = Delivery.query.filter_by(supplier_id=s.id).count()
+        # 2. Нормализация цены
+        # цена — затратный критерий: меньше цена = лучше
+        if price is not None and min_price is not None and max_price is not None and max_price != min_price:
+            price_score = 1 - ((price - min_price) / (max_price - min_price))
+        else:
+            price_score = 0.5
+
+        price_score = max(0, min(1, price_score))
+
+        # 3. Нормализация срока
+        # срок — затратный критерий: меньше срок = лучше
+        if lead_time is not None and min_lead is not None and max_lead is not None and max_lead != min_lead:
+            lead_time_score = 1 - ((lead_time - min_lead) / (max_lead - min_lead))
+        else:
+            lead_time_score = 0.5
+
+        lead_time_score = max(0, min(1, lead_time_score))
+
+        # 4. Надёжность по истории поставок
+        total_deliveries = Delivery.query.filter_by(supplier_id=supplier.id).count()
+
         completed_deliveries = Delivery.query.filter_by(
-            supplier_id=s.id,
+            supplier_id=supplier.id,
             status='delivered'
         ).count()
 
-        reliability_score = completed_deliveries / total_deliveries if total_deliveries > 0 else 0.5
+        if total_deliveries > 0:
+            reliability_score = completed_deliveries / total_deliveries
+        else:
+            # для нового поставщика ставим нейтральную надёжность
+            reliability_score = 0.5
 
+        reliability_score = max(0, min(1, reliability_score))
+
+        # 5. Риск по задержкам и плохим оценкам
         delivered_rows = Delivery.query.filter(
-            Delivery.supplier_id == s.id,
+            Delivery.supplier_id == supplier.id,
             Delivery.status == 'delivered',
             Delivery.delay_minutes.isnot(None)
         ).all()
 
-        avg_delay = (
-            sum(d.delay_minutes for d in delivered_rows) / len(delivered_rows)
-            if delivered_rows else 0
-        )
+        if delivered_rows:
+            avg_delay = sum(d.delay_minutes for d in delivered_rows) / len(delivered_rows)
+        else:
+            avg_delay = 0
 
         bad_quality_count = Delivery.query.filter(
-            Delivery.supplier_id == s.id,
+            Delivery.supplier_id == supplier.id,
             Delivery.status == 'delivered',
             Delivery.quality_score.isnot(None),
             Delivery.quality_score <= 2
@@ -517,19 +625,39 @@ def recommend_suppliers():
         else:
             delay_risk = 0.1
 
-        quality_risk = bad_quality_count / total_deliveries if total_deliveries > 0 else 0.0
+        if total_deliveries > 0:
+            quality_risk = bad_quality_count / total_deliveries
+        else:
+            quality_risk = 0.0
+
         risk_score = min(1.0, (delay_risk * 0.7) + (quality_risk * 0.3))
 
-        if price and min_price is not None and max_price is not None and max_price != min_price:
-            price_score = 1 - ((price - min_price) / (max_price - min_price))
-        else:
-            price_score = 0.5
+        # Для нелинейной свёртки риск превращаем в положительный критерий:
+        # меньше риск = лучше
+        risk_component = 1 - risk_score
 
-        if lead_time and min_lead is not None and max_lead is not None and max_lead != min_lead:
-            lead_time_score = 1 - ((lead_time - min_lead) / (max_lead - min_lead))
-        else:
-            lead_time_score = 0.5
+        # 6. Защита от нулей
+        # В геометрической свёртке ноль полностью обнуляет результат,
+        # поэтому ставим минимальное значение 0.01
+        rating_component = max(rating_score, 0.01)
+        price_component = max(price_score, 0.01)
+        lead_component = max(lead_time_score, 0.01)
+        reliability_component = max(reliability_score, 0.01)
+        risk_component = max(risk_component, 0.01)
 
+        # 7. Нелинейная свёртка
+        nonlinear_score = (
+            (rating_component ** w_rating) *
+            (price_component ** w_price) *
+            (lead_component ** w_lead) *
+            (reliability_component ** w_reliability) *
+            (risk_component ** w_risk)
+        )
+
+        # Для интерфейса переводим в проценты
+        final_score = round(nonlinear_score * 100, 2)
+
+        # 8. Объяснения рекомендации
         reasons = []
 
         if price_score > 0.8:
@@ -538,42 +666,68 @@ def recommend_suppliers():
         if rating_score > 0.8:
             reasons.append('высокий рейтинг')
 
+        if lead_time_score > 0.8:
+            reasons.append('короткий срок поставки')
+
         if reliability_score > 0.7:
-            reasons.append('надежный поставщик')
+            reasons.append('надёжный поставщик')
 
         if risk_score > 0.5:
             reasons.append('есть риск задержек')
 
+        if risk_score <= 0.2:
+            reasons.append('низкий риск')
+
         if not reasons:
             reasons.append('сбалансированные показатели')
 
-        score = (
-            0.30 * rating_score +
-            0.25 * price_score +
-            0.20 * lead_time_score +
-            0.15 * reliability_score -
-            0.10 * risk_score
-        )
-
         candidates.append({
-            'supplier_id': s.id,
-            'supplier': s.company_name,
+            'supplier_id': supplier.id,
+            'supplier': supplier.company_name,
+
             'rating': rating,
             'price': price,
             'lead_time_days': lead_time,
-            'score': round(score, 3),
+
+            'score': final_score,
+
+            'rating_score': round(rating_score, 3),
+            'price_score': round(price_score, 3),
+            'lead_time_score': round(lead_time_score, 3),
             'reliability_score': round(reliability_score, 3),
             'risk_score': round(risk_score, 3),
+
             'avg_delay': round(avg_delay, 1),
             'bad_quality_count': bad_quality_count,
             'total_deliveries': total_deliveries,
             'completed_deliveries': completed_deliveries,
+
             'reasons': reasons,
+            'model_type': 'nonlinear_convolution',
+            'weights': {
+                'rating': round(w_rating, 3),
+                'price': round(w_price, 3),
+                'lead_time': round(w_lead, 3),
+                'reliability': round(w_reliability, 3),
+                'risk': round(w_risk, 3)
+            }
         })
 
     candidates.sort(key=lambda x: x['score'], reverse=True)
 
-    return jsonify({'success': True, 'items': candidates})
+    return jsonify({
+        'success': True,
+        'model': 'Гибридная модель: AHP + нелинейная свёртка + динамический риск',
+        'scenario': scenario,
+        'weights': {
+            'rating': round(w_rating, 3),
+            'price': round(w_price, 3),
+            'lead_time': round(w_lead, 3),
+            'reliability': round(w_reliability, 3),
+            'risk': round(w_risk, 3)
+        },
+        'items': candidates
+    })
 
 # отображение рейтинга поставщика у логиста
 @api_logistician_bp.route('/api/logistician/supplier-summary/<int:supplier_id>')
