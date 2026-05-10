@@ -647,43 +647,71 @@ async function loadSupplierRecommendations(materialId) {
   const res = await fetch(
     `/api/logistician/recommend-suppliers?material_id=${materialId}&scenario=${scenario}`
   );
+
   const data = await res.json();
 
   if (!data.success || !data.items.length) {
     box.innerHTML = 'Нет данных для рекомендации';
     return;
   }
+
   const weightsHtml = data.weights ? `
-      <div class="recommend-weights">
-        <strong>Веса модели:</strong>
-        Рейтинг: ${Math.round(data.weights.rating * 100)}%,
-        Цена: ${Math.round(data.weights.price * 100)}%,
-        Срок: ${Math.round(data.weights.lead_time * 100)}%,
-        Надёжность: ${Math.round(data.weights.reliability * 100)}%,
-        Риск: ${Math.round(data.weights.risk * 100)}%
-      </div>
-    ` : '';
-  box.innerHTML = weightsHtml + data.items.map((x, index) => `
-    <div class="recommend-item ${index === 0 ? 'best' : ''}">
-      <div>
-        <strong>${index + 1}. ${escapeHtml(x.supplier)}</strong>
-        ${index === 0 ? '<span class="status-badge status-normal">Рекомендуется</span>' : ''}
-      </div>
-      <div class="recommend-meta">
-        <span>Рейтинг: ${x.rating ?? '—'}</span>
-        <span>Цена: ${x.price ?? '—'}</span>
-        <span>Срок: ${x.lead_time_days ?? '—'} дн.</span>
-        <span>Надёжность: ${x.reliability_score !== undefined ? Math.round(x.reliability_score * 100) + '%' : '—'}</span>
-        <span>Риск: ${x.risk_score !== undefined ? Math.round(x.risk_score * 100) + '%' : '—'}</span>
-        <span>Средняя задержка: ${x.avg_delay ?? '—'} мин</span>
-        <span><strong>Итог: ${x.score}%</strong></span>
-      </div>
-      ${x.reasons && x.reasons.length
-          ? `<div class="recommend-reasons">
-              ${x.reasons.map(r => `<span class="status-badge status-planned">${escapeHtml(r)}</span>`).join(' ')}
-            </div>`
-          : ''}
-      <div class="recommend-actions">
+    <div class="recommend-weights">
+      <strong>Веса модели:</strong>
+      Рейтинг: ${Math.round(data.weights.rating * 100)}%,
+      Цена: ${Math.round(data.weights.price * 100)}%,
+      Срок: ${Math.round(data.weights.lead_time * 100)}%,
+      Надёжность: ${Math.round(data.weights.reliability * 100)}%,
+      Риск: ${Math.round(data.weights.risk * 100)}%
+    </div>
+  ` : '';
+
+  box.innerHTML = weightsHtml + data.items.map((x, index) => {
+    let mlRiskLabel = 'ML не обучена';
+    let mlRiskText = '—';
+
+    if (x.ml_risk_percent !== null && x.ml_risk_percent !== undefined) {
+      mlRiskText = `${x.ml_risk_percent}%`;
+
+      if (x.ml_risk_percent >= 70) {
+        mlRiskLabel = 'Высокий риск';
+      } else if (x.ml_risk_percent >= 40) {
+        mlRiskLabel = 'Средний риск';
+      } else {
+        mlRiskLabel = 'Низкий риск';
+      }
+    }
+
+    return `
+      <div class="recommend-item ${index === 0 ? 'best' : ''}">
+        <div>
+          <strong>${index + 1}. ${escapeHtml(x.supplier)}</strong>
+          ${index === 0 ? '<span class="status-badge status-normal">Рекомендуется</span>' : ''}
+        </div>
+
+        <div class="recommend-meta">
+          <span>Рейтинг: ${x.rating ?? '—'}</span>
+          <span>Цена: ${x.price ?? '—'}</span>
+          <span>Срок: ${x.lead_time_days ?? '—'} дн.</span>
+          <span>Надёжность: ${x.reliability_score !== undefined ? Math.round(x.reliability_score * 100) + '%' : '—'}</span>
+          <span>Риск: ${x.risk_score !== undefined ? Math.round(x.risk_score * 100) + '%' : '—'}</span>
+          <span>Средняя задержка: ${x.avg_delay ?? '—'} мин</span>
+          <span><strong>Итог: ${x.score}%</strong></span>
+        </div>
+
+        <div class="recommend-ml">
+          <strong>ML-прогноз риска:</strong> ${mlRiskLabel} (${mlRiskText})
+        </div>
+
+        ${
+          x.reasons && x.reasons.length
+            ? `<div class="recommend-reasons">
+                ${x.reasons.map(r => `<span class="status-badge status-planned">${escapeHtml(r)}</span>`).join(' ')}
+              </div>`
+            : ''
+        }
+
+        <div class="recommend-actions">
           <button type="button" class="btn btn-secondary btn-sm"
             onclick="selectRecommendedSupplier(${x.supplier_id})">
             Выбрать
@@ -694,8 +722,9 @@ async function loadSupplierRecommendations(materialId) {
             Анализ
           </button>
         </div>
-    </div>
-  `).join('');
+      </div>
+    `;
+  }).join('');
 }
 
 //выбор рекомендованного поставщика

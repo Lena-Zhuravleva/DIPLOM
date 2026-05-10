@@ -3,6 +3,9 @@ from decorators import role_required
 import datetime
 from extensions import db
 from models import User, Supplier, Material, Request, ProcurementPlan, SupplierMaterial, Delivery, SupplierRatingHistory, SupplierEvent
+from services.ml_dataset import build_supplier_ml_dataset
+from services.ml_training import train_supplier_risk_model, load_supplier_risk_model, MODEL_PATH
+import os
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -318,9 +321,24 @@ def supplier_ratings_page():
     stats = []
 
     for s in suppliers:
-        total = Delivery.query.filter_by(supplier_id=s.id).count()
-        delivered = Delivery.query.filter_by(supplier_id=s.id, status='delivered').count()
-        cancelled = Delivery.query.filter_by(supplier_id=s.id, status='cancelled').count()
+        total_deliveries = Delivery.query.filter_by(supplier_id=s.id).count()
+
+        delivered = Delivery.query.filter_by(
+            supplier_id=s.id,
+            status='delivered'
+        ).count()
+
+        cancelled = Delivery.query.filter_by(
+            supplier_id=s.id,
+            status='cancelled'
+        ).count()
+
+        supplier_rejected = Request.query.filter_by(
+            supplier_id=s.id,
+            status='rejected_supplier'
+        ).count()
+
+        total_interactions = total_deliveries + supplier_rejected
 
         delivered_rows = Delivery.query.filter(
             Delivery.supplier_id == s.id,
@@ -335,9 +353,11 @@ def supplier_ratings_page():
 
         stats.append({
             'supplier': s,
-            'total': total,
+            'total_deliveries': total_deliveries,
+            'total_interactions': total_interactions,
             'delivered': delivered,
             'cancelled': cancelled,
+            'supplier_rejected': supplier_rejected,
             'avg_delay': avg_delay
         })
 
@@ -419,3 +439,44 @@ def supplier_analytics_page(supplier_id):
         events=events,
         rating_history=rating_history
     )
+
+@admin_bp.route('/admin/ml-model')
+@role_required('admin')
+def ml_model_page():
+    rows = build_supplier_ml_dataset()
+
+    saved_model = load_supplier_risk_model()
+    model_exists = saved_model is not None
+
+    metrics = None
+    features = []
+    model_path = MODEL_PATH
+    feature_importance = []
+
+    if saved_model:
+        metrics = saved_model.get('metrics')
+        features = saved_model.get('feature_columns', [])
+        feature_importance = saved_model.get('feature_importance', [])
+
+    return render_template(
+        'admin/ml_model.html',
+        rows_count=len(rows),
+        model_exists=model_exists,
+        metrics=metrics,
+        features=features,
+        model_path=model_path,
+        feature_importance=feature_importance
+    )
+
+
+@admin_bp.route('/admin/ml-model/train', methods=['POST'])
+@role_required('admin')
+def train_ml_model_admin():
+    result = train_supplier_risk_model()
+
+    if result.get('success'):
+        flash('ML-модель успешно обучена.', 'success')
+    else:
+        flash(result.get('error', 'Ошибка обучения ML-модели.'), 'error')
+
+    return redirect(url_for('admin.ml_model_page'))

@@ -18,9 +18,11 @@
           <tr>
             <th>Поставщик</th>
             <th>Рейтинг</th>
+            <th>Всего взаимодействий</th>
             <th>Всего поставок</th>
             <th>Выполнено</th>
             <th>Отменено</th>
+            <th>Отказы поставщика</th>
             <th>Средняя задержка</th>
             <th>Действия</th>
 
@@ -35,9 +37,11 @@
                 {{ row.supplier.rating }}
               </span>
             </td>
-            <td>{{ row.total }}</td>
+            <td>{{ row.total_interactions }}</td>
+            <td>{{ row.total_deliveries }}</td>
             <td>{{ row.delivered }}</td>
             <td>{{ row.cancelled }}</td>
+            <td>{{ row.supplier_rejected }}</td>
             <td>
               {% if row.avg_delay is not none %}
                 {{ row.avg_delay }} мин

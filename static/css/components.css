@@ -487,6 +487,15 @@
   margin-bottom: 10px;
   line-height: 1.5;
 }
+.recommend-ml {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.14);
+  font-size: 13px;
+  line-height: 1.4;
+}
 
 .supplier-summary-head {
   display: flex;
@@ -646,6 +655,54 @@
 
   .analytics-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* админская визуальная часть с обучением модели*/
+.feature-chart {
+  padding: 18px;
+}
+
+.feature-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 70px;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.feature-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.feature-bar-wrap {
+  height: 14px;
+  background: #eef2ff;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.feature-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #22c55e);
+  border-radius: 999px;
+}
+
+.feature-value {
+  font-weight: 800;
+  text-align: right;
+  font-size: 13px;
+}
+
+@media (max-width: 800px) {
+  .feature-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  .feature-value {
+    text-align: left;
   }
 }
 

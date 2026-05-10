@@ -1,0 +1,190 @@
+{% extends "layouts/app.html" %}
+{% block title %}ML-модель риска поставщиков{% endblock %}
+
+{% block content %}
+<div class="container">
+
+  <div class="analytics-hero">
+    <div>
+      <h2><i class="fas fa-brain"></i> ML-модель риска поставщиков</h2>
+      <p>
+        Модель прогнозирует вероятность проблемной поставки на основе цены,
+        срока, рейтинга, количества, задержек и качества.
+      </p>
+    </div>
+
+    <div class="analytics-rating">
+      <div class="analytics-rating-value">
+        {% if model_exists %}
+          OK
+        {% else %}
+          —
+        {% endif %}
+      </div>
+      <div class="analytics-rating-label">
+        {% if model_exists %}
+          модель обучена
+        {% else %}
+          модель не обучена
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="analytics-grid">
+    <div class="analytics-card">
+      <div class="analytics-card-title">Строк в dataset</div>
+      <div class="analytics-card-value">{{ rows_count }}</div>
+    </div>
+
+    <div class="analytics-card">
+      <div class="analytics-card-title">Accuracy</div>
+      <div class="analytics-card-value">
+        {{ metrics.accuracy if metrics else '—' }}
+      </div>
+    </div>
+
+    <div class="analytics-card">
+      <div class="analytics-card-title">Precision</div>
+      <div class="analytics-card-value">
+        {{ metrics.precision if metrics else '—' }}
+      </div>
+    </div>
+
+    <div class="analytics-card">
+      <div class="analytics-card-title">Recall</div>
+      <div class="analytics-card-value">
+        {{ metrics.recall if metrics else '—' }}
+      </div>
+    </div>
+  </div>
+  <div class="card mt-3">
+  <div class="card-header">
+    <h2><i class="fas fa-chart-bar"></i> Важность признаков</h2>
+    <p class="register-subtitle">
+      Чем выше значение, тем сильнее признак влияет на прогноз проблемной поставки.
+    </p>
+  </div>
+
+  <div class="feature-chart">
+    {% for item in feature_importance %}
+      <div class="feature-row">
+        <div class="feature-name">
+          {% if item.feature == 'price' %}
+            Цена
+          {% elif item.feature == 'lead_time_days' %}
+            Срок поставки
+          {% elif item.feature == 'supplier_rating' %}
+            Рейтинг поставщика
+          {% elif item.feature == 'quantity' %}
+            Количество
+          {% elif item.feature == 'duration_min' %}
+            Длительность
+          {% elif item.feature == 'delay_minutes' %}
+            Задержка
+          {% elif item.feature == 'quality_score' %}
+            Оценка качества
+          {% else %}
+            {{ item.feature }}
+          {% endif %}
+        </div>
+
+        <div class="feature-bar-wrap">
+          <div class="feature-bar" style="width: {{ (item.importance * 100)|round(1) }}%;"></div>
+        </div>
+
+        <div class="feature-value">
+          {{ (item.importance * 100)|round(1) }}%
+        </div>
+      </div>
+    {% else %}
+      <div class="logi-empty" style="padding:16px;">
+        Важность признаков появится после обучения модели.
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+  <div class="card mt-3">
+    <div class="card-header">
+      <h2><i class="fas fa-cogs"></i> Управление моделью</h2>
+      <p class="register-subtitle">
+        После изменения истории поставок модель можно переобучить.
+      </p>
+    </div>
+
+    <div style="padding: 16px;">
+      <form method="POST" action="{{ url_for('admin.train_ml_model_admin') }}">
+        <button type="submit" class="btn btn-primary"
+                onclick="return confirm('Переобучить ML-модель риска поставщиков?')">
+          <i class="fas fa-play"></i> Обучить модель
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header">
+      <h2><i class="fas fa-list"></i> Используемые признаки</h2>
+    </div>
+
+    <div class="table-responsive">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Признак</th>
+            <th>Описание</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in features %}
+          <tr>
+            <td><strong>{{ f }}</strong></td>
+            <td>
+              {% if f == 'price' %}
+                Цена материала у поставщика
+              {% elif f == 'lead_time_days' %}
+                Срок поставки/изготовления
+              {% elif f == 'supplier_rating' %}
+                Текущий рейтинг поставщика
+              {% elif f == 'quantity' %}
+                Количество в поставке
+              {% elif f == 'duration_min' %}
+                Плановая длительность разгрузки
+              {% elif f == 'delay_minutes' %}
+                Фактическая задержка
+              {% elif f == 'quality_score' %}
+                Оценка качества поставки
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="2">Признаки появятся после обучения модели</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card mt-3">
+    <div class="card-header">
+      <h2><i class="fas fa-info-circle"></i> Техническая информация</h2>
+    </div>
+
+    <div style="padding: 16px;">
+      <p><strong>Алгоритм:</strong> GradientBoostingClassifier</p>
+      <p><strong>Файл модели:</strong> {{ model_path }}</p>
+      <p>
+        <strong>Целевая переменная:</strong>
+        проблемная поставка, если поставка отменена, задержана более чем на 30 минут
+        или получила оценку качества 2 и ниже.
+      </p>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

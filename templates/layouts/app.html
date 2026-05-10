@@ -102,6 +102,10 @@
                   <i class="fas fa-stream"></i> Журнал событий
                 </a>
               </li>
+              <li><a href="/admin/ml-model"
+                     class="{% if request.path.startswith('/admin/ml-model') %}active{% endif %}">
+                     <i class="fas fa-brain"></i> ML-модель
+              </a></li>
 
 
             {% elif session.get('role') == 'logistician' %}
