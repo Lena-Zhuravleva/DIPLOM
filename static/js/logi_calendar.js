@@ -697,6 +697,25 @@ async function loadSupplierRecommendations(materialId) {
           <span>Риск: ${x.risk_score !== undefined ? Math.round(x.risk_score * 100) + '%' : '—'}</span>
           <span>Средняя задержка: ${x.avg_delay ?? '—'} мин</span>
           <span><strong>Итог: ${x.score}%</strong></span>
+          <span>TOPSIS: ${x.topsis_score !== null && x.topsis_score !== undefined ? x.topsis_score + '%' : '—'}</span>
+        </div>
+
+        <div class="score-compare">
+          <div class="score-line">
+            <span>Hybrid</span>
+            <div class="score-bar-wrap">
+              <div class="score-bar hybrid" style="width:${x.score || 0}%"></div>
+            </div>
+            <b>${x.score}%</b>
+          </div>
+
+          <div class="score-line">
+            <span>TOPSIS</span>
+            <div class="score-bar-wrap">
+              <div class="score-bar topsis" style="width:${x.topsis_score || 0}%"></div>
+            </div>
+            <b>${x.topsis_score ?? '—'}%</b>
+          </div>
         </div>
 
         <div class="recommend-ml">

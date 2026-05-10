@@ -569,7 +569,93 @@
   font-size: 12px;
   opacity: .65;
 }
+/*отображение по топсису*/
+.score-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
 
+.score-line {
+  display: grid;
+  grid-template-columns: 70px 1fr 60px;
+  gap: 8px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.score-bar-wrap {
+  height: 10px;
+  background: #eef2ff;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.score-bar {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.score-bar.hybrid {
+  background: linear-gradient(90deg, #2563eb, #22c55e);
+}
+
+.score-bar.topsis {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+/*отображение графиков по топсису*/
+.dataset-chart {
+  padding: 18px;
+}
+
+.dataset-row {
+  display: grid;
+  grid-template-columns: 190px 1fr 50px;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.dataset-label {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.dataset-bar-wrap {
+  height: 16px;
+  background: #f1f5f9;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.dataset-bar {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.dataset-bar.normal {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+}
+
+.dataset-bar.problem {
+  background: linear-gradient(90deg, #f97316, #ef4444);
+}
+
+.dataset-value {
+  font-weight: 900;
+  text-align: right;
+}
+
+@media (max-width: 800px) {
+  .dataset-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dataset-value {
+    text-align: left;
+  }
+}
 
 /*описание поставщика*/
 .analytics-hero {
@@ -705,6 +791,8 @@
     text-align: left;
   }
 }
+
+
 
 
 

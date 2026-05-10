@@ -445,6 +445,9 @@ def supplier_analytics_page(supplier_id):
 def ml_model_page():
     rows = build_supplier_ml_dataset()
 
+    normal_count = len([r for r in rows if r.get("target_problem") == 0])
+    problem_count = len([r for r in rows if r.get("target_problem") == 1])
+
     saved_model = load_supplier_risk_model()
     model_exists = saved_model is not None
 
@@ -465,6 +468,8 @@ def ml_model_page():
         metrics=metrics,
         features=features,
         model_path=model_path,
+        normal_count=normal_count,
+        problem_count=problem_count,
         feature_importance=feature_importance
     )
 

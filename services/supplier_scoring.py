@@ -205,6 +205,75 @@ def calculate_nonlinear_score(
 
     return round(nonlinear_score * 100, 2)
 
+def calculate_topsis_scores(raw_candidates, weights):
+    """
+    TOPSIS baseline.
+    Все критерии уже приведены к виду: больше = лучше.
+    """
+
+    if not raw_candidates:
+        return {}
+
+    criteria = [
+        "rating_score",
+        "price_score",
+        "lead_time_score",
+        "reliability_score",
+        "risk_component"
+    ]
+
+    criteria_weights = {
+        "rating_score": weights["rating"],
+        "price_score": weights["price"],
+        "lead_time_score": weights["lead_time"],
+        "reliability_score": weights["reliability"],
+        "risk_component": weights["risk"],
+    }
+
+    # 1. Нормализация по векторной норме
+    denominators = {}
+
+    for c in criteria:
+        denominators[c] = sum((item[c] ** 2 for item in raw_candidates)) ** 0.5
+        if denominators[c] == 0:
+            denominators[c] = 1
+
+    normalized = []
+
+    for item in raw_candidates:
+        row = {
+            "supplier_id": item["supplier_id"]
+        }
+
+        for c in criteria:
+            row[c] = (item[c] / denominators[c]) * criteria_weights[c]
+
+        normalized.append(row)
+
+    # 2. Идеальное и анти-идеальное решение
+    ideal = {}
+    anti_ideal = {}
+
+    for c in criteria:
+        values = [row[c] for row in normalized]
+        ideal[c] = max(values)
+        anti_ideal[c] = min(values)
+
+    # 3. Расстояния и коэффициент близости
+    result = {}
+
+    for row in normalized:
+        d_plus = sum((row[c] - ideal[c]) ** 2 for c in criteria) ** 0.5
+        d_minus = sum((row[c] - anti_ideal[c]) ** 2 for c in criteria) ** 0.5
+
+        if d_plus + d_minus == 0:
+            closeness = 0
+        else:
+            closeness = d_minus / (d_plus + d_minus)
+
+        result[row["supplier_id"]] = round(closeness * 100, 2)
+
+    return result
 
 def score_suppliers_for_material(material_id, scenario="balanced"):
     """
@@ -238,6 +307,7 @@ def score_suppliers_for_material(material_id, scenario="balanced"):
     }
 
     candidates = []
+    raw_candidates_for_topsis = []
 
     for relation in rows:
         supplier = relation.supplier
@@ -262,6 +332,8 @@ def score_suppliers_for_material(material_id, scenario="balanced"):
         risk_score = risk_data["risk_score"]
         avg_delay = risk_data["avg_delay"]
         bad_quality_count = risk_data["bad_quality_count"]
+
+
 
         ml_risk_probability = predict_supplier_risk({
             "price": price or 0,
@@ -299,6 +371,15 @@ def score_suppliers_for_material(material_id, scenario="balanced"):
             reliability_score=reliability_score,
             risk_score=combined_risk_score
         )
+        risk_component = max(1 - combined_risk_score, 0.01)
+        raw_candidates_for_topsis.append({
+            "supplier_id": supplier.id,
+            "rating_score": rating_score,
+            "price_score": price_score,
+            "lead_time_score": lead_time_score,
+            "reliability_score": reliability_score,
+            "risk_component": risk_component
+        })
 
         candidates.append({
             'supplier_id': supplier.id,
@@ -325,8 +406,15 @@ def score_suppliers_for_material(material_id, scenario="balanced"):
             'completed_deliveries': completed_deliveries,
 
             'reasons': reasons,
-            'model_type': 'ahp_nonlinear_dynamic_risk_ml_scoring'
+            'model_type': 'ahp_nonlinear_dynamic_risk_ml_scoring',
+
+            'topsis_score': None
         })
+
+    topsis_scores = calculate_topsis_scores(raw_candidates_for_topsis, weights)
+
+    for item in candidates:
+        item["topsis_score"] = topsis_scores.get(item["supplier_id"])
 
     candidates.sort(key=lambda x: x['score'], reverse=True)
 

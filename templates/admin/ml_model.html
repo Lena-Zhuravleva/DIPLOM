@@ -58,6 +58,35 @@
       </div>
     </div>
   </div>
+
+    <div class="card mt-3">
+      <div class="card-header">
+        <h2><i class="fas fa-chart-pie"></i> Распределение обучающей выборки</h2>
+        <p class="register-subtitle">
+          Соотношение нормальных и проблемных поставок в dataset.
+        </p>
+      </div>
+
+      <div class="dataset-chart">
+        <div class="dataset-row">
+          <div class="dataset-label">Нормальные поставки</div>
+          <div class="dataset-bar-wrap">
+            <div class="dataset-bar normal"
+                 style="width: {{ (normal_count / rows_count * 100)|round(1) if rows_count else 0 }}%;"></div>
+          </div>
+          <div class="dataset-value">{{ normal_count }}</div>
+        </div>
+
+        <div class="dataset-row">
+          <div class="dataset-label">Проблемные поставки</div>
+          <div class="dataset-bar-wrap">
+            <div class="dataset-bar problem"
+                 style="width: {{ (problem_count / rows_count * 100)|round(1) if rows_count else 0 }}%;"></div>
+          </div>
+          <div class="dataset-value">{{ problem_count }}</div>
+        </div>
+      </div>
+    </div>
   <div class="card mt-3">
   <div class="card-header">
     <h2><i class="fas fa-chart-bar"></i> Важность признаков</h2>
