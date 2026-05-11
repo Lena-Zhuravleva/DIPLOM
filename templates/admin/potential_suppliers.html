@@ -1,0 +1,279 @@
+{% extends "layouts/app.html" %}
+{% block title %}Оценка новых поставщиков{% endblock %}
+
+{% block content %}
+
+<div class="card">
+  <div class="card-header">
+    <h2>Оценка нового поставщика</h2>
+    <p>
+      Цена и срок вводятся вручную, а качество и риск оцениваются ML-анализом отзывов.
+    </p>
+  </div>
+
+  <form method="POST"
+        action="{{ url_for('admin.evaluate_potential_supplier') }}"
+        style="display:grid; gap:14px; grid-template-columns: repeat(2, 1fr);">
+
+    <div>
+      <label>Название компании</label>
+      <input class="form-control"
+       id="reviewsCompany"
+       name="reviews_company"
+       placeholder="Например: Girteka Logistics">
+    </div>
+
+    <div>
+      <label>Сайт компании</label>
+      <input class="form-control"
+             name="website"
+             placeholder="https://example.ru">
+    </div>
+
+    <div>
+      <label>Материал / категория</label>
+      <input class="form-control"
+             name="material_query"
+             placeholder="Например: Арматура"
+             required>
+    </div>
+
+    <div>
+      <label>Город</label>
+      <input class="form-control"
+             name="city"
+             placeholder="Например: Воронеж">
+    </div>
+
+    <div>
+      <label>Категория</label>
+      <input class="form-control"
+             name="category"
+             placeholder="Например: Металл">
+    </div>
+
+    <div>
+      <label>Сценарий оценки</label>
+      <select class="form-control" name="scenario">
+        <option value="balanced">Сбалансированный</option>
+        <option value="low_cost">Минимальная цена</option>
+        <option value="fast_delivery">Быстрая поставка</option>
+        <option value="reliable">Надёжность</option>
+      </select>
+    </div>
+
+    <div>
+      <label>Цена</label>
+      <input class="form-control"
+             name="price"
+             type="number"
+             step="0.01"
+             placeholder="Например: 1200"
+             required>
+    </div>
+
+    <div>
+      <label>Срок поставки, дней</label>
+      <input class="form-control"
+             name="lead_time_days"
+             type="number"
+             placeholder="Например: 5"
+             required>
+    </div>
+
+      <div style="grid-column: 1 / -1;">
+          <label>Название компании для поиска отзывов</label>
+          <div style="display:grid; grid-template-columns: 1fr 220px; gap:10px;">
+            <input class="form-control"
+               id="companyName"
+               name="company_name"
+               placeholder="Например: ООО МеталлСнаб"
+               required>
+
+            <button class="btn btn-secondary"
+                    type="button"
+                    id="loadReviewsBtn">
+              Найти отзывы
+            </button>
+          </div>
+
+          <div id="reviewsLoadStatus" style="margin-top:8px; font-size:14px;"></div>
+        </div>
+
+    <div style="grid-column: 1 / -1;">
+      <label>Отзывы о поставщике</label>
+     <textarea class="form-control"
+          id="reviewsText"
+          name="reviews_text"
+          rows="8"
+          placeholder="Вставьте несколько отзывов, каждый с новой строки..."
+          required></textarea>
+    </div>
+
+    <div style="grid-column: 1 / -1;">
+      <button class="btn btn-primary" type="submit">
+        Оценить поставщика
+      </button>
+    </div>
+  </form>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header">
+    <h2>Результаты оценки новых поставщиков</h2>
+  </div>
+
+  <div class="table-responsive">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Компания</th>
+          <th>Материал</th>
+          <th>Город</th>
+          <th>Цена</th>
+          <th>Срок</th>
+          <th>ML-рейтинг</th>
+          <th>Отзывы</th>
+          <th>Sentiment</th>
+          <th>Риск</th>
+          <th>Hybrid Score</th>
+          <th>Решение</th>
+          <th>Действие</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for x in items %}
+        <tr>
+          <td>
+            <strong>{{ x.company_name }}</strong>
+            {% if x.website %}
+              <br>
+              <small>{{ x.website }}</small>
+            {% endif %}
+          </td>
+
+          <td>{{ x.material_query or '—' }}</td>
+          <td>{{ x.city or '—' }}</td>
+          <td>{{ x.price or '—' }}</td>
+          <td>{{ x.lead_time_days or '—' }} дн.</td>
+          <td>{{ x.rating or '—' }}</td>
+          <td>{{ x.reviews_count or 0 }}</td>
+
+          <td>
+            {% if x.sentiment_score is not none %}
+              {{ (x.sentiment_score * 100)|round(1) }}%
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <td>
+            {% if x.risk_score is not none %}
+              {{ (x.risk_score * 100)|round(1) }}%
+            {% else %}
+              —
+            {% endif %}
+          </td>
+
+          <td>
+            <strong>{{ x.hybrid_score or '—' }}%</strong>
+          </td>
+
+          <td>
+            {% if x.decision == 'recommended' %}
+              <span class="status-badge status-normal">Рекомендуется</span>
+            {% elif x.decision == 'caution' %}
+              <span class="status-badge status-planned">С осторожностью</span>
+            {% elif x.decision == 'not_recommended' %}
+              <span class="status-badge status-inactive">Не рекомендуется</span>
+            {% elif x.decision == 'added' %}
+              <span class="status-badge status-active">Добавлен</span>
+            {% else %}
+              {{ x.decision or '—' }}
+            {% endif %}
+          </td>
+
+          <td>
+            {% if x.decision != 'added' %}
+            <form method="POST"
+                  action="{{ url_for('admin.add_potential_to_suppliers', item_id=x.id) }}">
+              <button class="btn btn-success btn-sm" type="submit">
+                Добавить в базу
+              </button>
+            </form>
+            {% else %}
+              —
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="12" class="logi-empty">
+            Пока нет оценённых новых поставщиков
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const btn = document.getElementById('loadReviewsBtn');
+
+  if (!btn) {
+    console.log('Кнопка loadReviewsBtn не найдена');
+    return;
+  }
+
+  console.log('Кнопка loadReviewsBtn найдена');
+
+  btn.onclick = async function () {
+    console.log('Кнопка Найти отзывы нажата');
+
+    const companyInput = document.getElementById('reviewsCompany');
+    const reviewsText = document.getElementById('reviewsText');
+    const statusBox = document.getElementById('reviewsLoadStatus');
+
+    console.log('companyInput=', companyInput);
+    console.log('reviewsText=', reviewsText);
+    console.log('statusBox=', statusBox);
+
+    if (!companyInput || !reviewsText || !statusBox) {
+      alert('Не найдены элементы формы для отзывов');
+      return;
+    }
+
+    const company = companyInput.value.trim();
+
+    if (!company) {
+      statusBox.textContent = 'Введите название компании.';
+      return;
+    }
+
+    statusBox.textContent = 'Ищу компанию и отзывы...';
+
+    const formData = new FormData();
+    formData.append('reviews_company', company);
+
+    const res = await fetch('{{ url_for("admin.load_reviews_for_potential_supplier") }}', {
+      method: 'POST',
+      body: formData
+    });
+
+    const data = await res.json();
+
+    console.log(data);
+
+    if (!data.success) {
+      statusBox.textContent = data.error || 'Компания или отзывы не найдены.';
+      return;
+    }
+
+    reviewsText.value = data.text || '';
+    statusBox.textContent = `Найдена компания: ${data.company_name}. Загружено отзывов: ${data.reviews.length}`;
+  };
+});
+</script>
+{% endblock %}

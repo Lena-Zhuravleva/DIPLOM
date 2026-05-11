@@ -106,6 +106,10 @@
                      class="{% if request.path.startswith('/admin/ml-model') %}active{% endif %}">
                      <i class="fas fa-brain"></i> ML-модель
               </a></li>
+              <li><a href="/admin/potential-suppliers"
+                     class="{% if request.path.startswith('/admin/potential-suppliers') %}active{% endif %}">
+                  <i class="fas fa-search"></i> Новые поставщики
+              </a></li>
 
 
             {% elif session.get('role') == 'logistician' %}

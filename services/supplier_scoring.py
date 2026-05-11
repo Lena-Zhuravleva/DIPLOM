@@ -334,7 +334,6 @@ def score_suppliers_for_material(material_id, scenario="balanced"):
         bad_quality_count = risk_data["bad_quality_count"]
 
 
-
         ml_risk_probability = predict_supplier_risk({
             "price": price or 0,
             "lead_time_days": lead_time or 0,

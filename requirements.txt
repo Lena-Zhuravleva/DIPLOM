@@ -5,3 +5,7 @@ Werkzeug==3.0.1
 pandas
 scikit-learn
 joblib
+beautifulsoup4
+requests
+transformers
+torch

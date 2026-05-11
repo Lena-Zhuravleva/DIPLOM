@@ -2,9 +2,13 @@ from flask import Blueprint, request, redirect, url_for, flash, render_template,
 from decorators import role_required
 import datetime
 from extensions import db
-from models import User, Supplier, Material, Request, ProcurementPlan, SupplierMaterial, Delivery, SupplierRatingHistory, SupplierEvent
+from models import User, Supplier, Material, Request, ProcurementPlan, SupplierMaterial, Delivery, SupplierRatingHistory, SupplierEvent, PotentialSupplier
 from services.ml_dataset import build_supplier_ml_dataset
-from services.ml_training import train_supplier_risk_model, load_supplier_risk_model, MODEL_PATH
+from services.ml_training import predict_supplier_risk, train_supplier_risk_model, load_supplier_risk_model, MODEL_PATH
+from services.potential_supplier_scoring import score_potential_supplier
+from services.review_sentiment import analyze_reviews_text
+from services.review_parser import parse_reviews_from_company_name
+
 import os
 
 admin_bp = Blueprint('admin', __name__)
@@ -426,6 +430,46 @@ def supplier_analytics_page(supplier_id):
                       .limit(50)
                       .all())
 
+    ml_prediction = None
+    ml_risk_level = None
+    ml_behavior_text = None
+
+    try:
+        ml_prediction = predict_supplier_risk({
+            "price": 0,
+            "lead_time_days": supplier.delivery_time_days or 0,
+            "supplier_rating": supplier.rating or 0,
+            "quantity": total,
+            "duration_min": avg_delay or 0,
+            "delay_minutes": avg_delay or 0,
+            "quality_score": avg_quality or 4
+        })
+
+        if ml_prediction is not None:
+            probability = round(ml_prediction * 100, 1)
+
+            if probability < 30:
+                ml_risk_level = "Низкий риск"
+                ml_behavior_text = (
+                    "Поставщик, вероятно, выполнит поставку "
+                    "без критических нарушений."
+                )
+
+            elif probability < 60:
+                ml_risk_level = "Средний риск"
+                ml_behavior_text = (
+                    "Возможны задержки или снижение качества поставки."
+                )
+
+            else:
+                ml_risk_level = "Высокий риск"
+                ml_behavior_text = (
+                    "Высока вероятность проблемной поставки."
+                )
+
+    except Exception:
+        pass
+
     return render_template(
         'admin/supplier_analytics.html',
         supplier=supplier,
@@ -437,6 +481,9 @@ def supplier_analytics_page(supplier_id):
         avg_quality=avg_quality,
         materials=materials,
         events=events,
+        ml_prediction=ml_prediction,
+        ml_risk_level=ml_risk_level,
+        ml_behavior_text=ml_behavior_text,
         rating_history=rating_history
     )
 
@@ -485,3 +532,147 @@ def train_ml_model_admin():
         flash(result.get('error', 'Ошибка обучения ML-модели.'), 'error')
 
     return redirect(url_for('admin.ml_model_page'))
+
+@admin_bp.route('/admin/potential-suppliers')
+@role_required('admin')
+def potential_suppliers_page():
+    items = PotentialSupplier.query.order_by(PotentialSupplier.id.desc()).all()
+    return render_template('admin/potential_suppliers.html', items=items)
+
+
+@admin_bp.route('/admin/potential-suppliers/evaluate', methods=['POST'])
+@role_required('admin')
+def evaluate_potential_supplier():
+    company_name = request.form.get('company_name', '').strip()
+    material_query = request.form.get('material_query', '').strip()
+    price = request.form.get('price') or None
+    lead_time_days = request.form.get('lead_time_days') or None
+    city = request.form.get('city', '').strip()
+    category = request.form.get('category', '').strip()
+    website = request.form.get('website', '').strip()
+    reviews_text = request.form.get('reviews_text', '').strip()
+    scenario = request.form.get('scenario', 'balanced')
+
+    if not company_name:
+        flash('Введите название поставщика', 'error')
+        return redirect(url_for('admin.potential_suppliers_page'))
+
+    if not material_query:
+        flash('Введите материал или категорию', 'error')
+        return redirect(url_for('admin.potential_suppliers_page'))
+
+    if not price:
+        flash('Введите цену', 'error')
+        return redirect(url_for('admin.potential_suppliers_page'))
+
+    if not lead_time_days:
+        flash('Введите срок поставки', 'error')
+        return redirect(url_for('admin.potential_suppliers_page'))
+
+    sentiment = analyze_reviews_text(reviews_text)
+
+    scoring = score_potential_supplier(
+        material_query=material_query,
+        price=price,
+        lead_time_days=lead_time_days,
+        rating=sentiment["rating"],
+        review_risk_score=sentiment["risk_score"],
+        scenario=scenario
+    )
+
+    hybrid_score = scoring["hybrid_score"]
+    risk_score = scoring["risk_score"]
+
+    if hybrid_score >= 75 and risk_score <= 0.35:
+        decision = 'recommended'
+    elif hybrid_score >= 55 and risk_score <= 0.6:
+        decision = 'caution'
+    else:
+        decision = 'not_recommended'
+
+    item = PotentialSupplier(
+        company_name=company_name,
+        website=website or None,
+        city=city or None,
+        category=category or None,
+        source_url=website or None,
+        material_query=material_query,
+        price=price,
+        lead_time_days=lead_time_days,
+        rating=sentiment["rating"],
+        reviews_count=sentiment["reviews_count"],
+        sentiment_score=sentiment["sentiment_score"],
+        reliability_score=scoring["reliability_score"],
+        risk_score=scoring["risk_score"],
+        hybrid_score=scoring["hybrid_score"],
+        decision=decision,
+        raw_description=reviews_text
+    )
+
+    db.session.add(item)
+    db.session.commit()
+
+    flash('Новый поставщик оценён по отзывам и коммерческим условиям', 'success')
+    return redirect(url_for('admin.potential_suppliers_page'))
+
+
+@admin_bp.route('/admin/potential-suppliers/<int:item_id>/add-to-suppliers', methods=['POST'])
+@role_required('admin')
+def add_potential_to_suppliers(item_id):
+    item = PotentialSupplier.query.get_or_404(item_id)
+
+    supplier = Supplier(
+        company_name=item.company_name,
+        address=item.city,
+        specialization=item.category,
+        rating=item.rating or 3.5,
+        delivery_time_days=item.lead_time_days or 1,
+        is_active=True
+    )
+
+    db.session.add(supplier)
+    db.session.flush()
+
+    material = None
+
+    if item.material_query:
+        material = Material.query.filter(
+            Material.name.ilike(f'%{item.material_query}%')
+        ).first()
+
+    if material:
+        relation = SupplierMaterial(
+            supplier_id=supplier.id,
+            material_id=material.id,
+            price=item.price,
+            lead_time_days=item.lead_time_days,
+            is_active=True
+        )
+        db.session.add(relation)
+
+    item.decision = 'added'
+    db.session.commit()
+
+    flash('Поставщик добавлен в основную базу', 'success')
+    return redirect(url_for('admin.potential_suppliers_page'))
+
+@admin_bp.route('/admin/potential-suppliers/load-reviews', methods=['POST'])
+@role_required('admin')
+def load_reviews_for_potential_supplier():
+    company_query = request.form.get('reviews_company', '').strip()
+
+    if not company_query:
+        return {
+            "success": False,
+            "error": "Введите название компании"
+        }
+
+    try:
+        result = parse_reviews_from_company_name(company_query, limit=5)
+        return result
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }

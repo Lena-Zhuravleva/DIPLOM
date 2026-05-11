@@ -268,3 +268,31 @@ CREATE TABLE supplier_events (
   CONSTRAINT fk_supplier_events_delivery
     FOREIGN KEY (delivery_id) REFERENCES deliveries(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+CREATE TABLE potential_suppliers (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+
+    company_name VARCHAR(150) NOT NULL,
+    website VARCHAR(255),
+    city VARCHAR(100),
+    category VARCHAR(100),
+
+    source_url VARCHAR(255),
+    material_query VARCHAR(100),
+
+    price DECIMAL(10,2),
+    lead_time_days INT,
+    rating DECIMAL(3,2),
+
+    reviews_count INT DEFAULT 0,
+    sentiment_score DECIMAL(4,3),
+
+    reliability_score DECIMAL(4,3),
+    risk_score DECIMAL(4,3),
+    hybrid_score DECIMAL(6,2),
+
+    decision VARCHAR(50),
+    raw_description TEXT,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

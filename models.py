@@ -275,3 +275,40 @@ class SupplierEvent(db.Model):
     material = db.relationship('Material')
     request = db.relationship('Request')
     delivery = db.relationship('Delivery')
+
+
+class PotentialSupplier(db.Model):
+    __tablename__ = 'potential_suppliers'
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    company_name = db.Column(db.String(150), nullable=False)
+
+    website = db.Column(db.String(255))
+    city = db.Column(db.String(100))
+    category = db.Column(db.String(100))
+
+    source_url = db.Column(db.String(255))
+    material_query = db.Column(db.String(100))
+
+    price = db.Column(db.Numeric(10, 2))
+    lead_time_days = db.Column(db.Integer)
+
+    rating = db.Column(db.Numeric(3, 2))
+
+    reviews_count = db.Column(db.Integer, default=0)
+
+    sentiment_score = db.Column(db.Numeric(4, 3))
+
+    reliability_score = db.Column(db.Numeric(4, 3))
+    risk_score = db.Column(db.Numeric(4, 3))
+    hybrid_score = db.Column(db.Numeric(6, 2))
+
+    decision = db.Column(db.String(50))
+
+    raw_description = db.Column(db.Text)
+
+    created_at = db.Column(
+        db.TIMESTAMP,
+        server_default=db.func.current_timestamp()
+    )

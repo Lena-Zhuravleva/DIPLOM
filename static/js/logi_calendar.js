@@ -630,6 +630,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
+function renderMiniBar(label, value) {
+  const safeValue = Math.max(0, Math.min(100, Number(value) || 0));
+
+  return `
+    <div class="mini-bar-row">
+      <span>${label}</span>
+      <div class="mini-bar-wrap">
+        <div class="mini-bar-fill" style="width:${safeValue}%"></div>
+      </div>
+      <b>${safeValue}%</b>
+    </div>
+  `;
+}
+
 //функция для расчета выгодного поставщика
 async function loadSupplierRecommendations(materialId) {
   const box = $('supplierRecommendations');
@@ -656,15 +670,16 @@ async function loadSupplierRecommendations(materialId) {
   }
 
   const weightsHtml = data.weights ? `
-    <div class="recommend-weights">
-      <strong>Веса модели:</strong>
-      Рейтинг: ${Math.round(data.weights.rating * 100)}%,
-      Цена: ${Math.round(data.weights.price * 100)}%,
-      Срок: ${Math.round(data.weights.lead_time * 100)}%,
-      Надёжность: ${Math.round(data.weights.reliability * 100)}%,
-      Риск: ${Math.round(data.weights.risk * 100)}%
-    </div>
-  ` : '';
+      <div class="recommend-weights">
+        <strong>Веса AHP для текущего сценария:</strong>
+
+        ${renderMiniBar('Рейтинг', Math.round(data.weights.rating * 100))}
+        ${renderMiniBar('Цена', Math.round(data.weights.price * 100))}
+        ${renderMiniBar('Срок', Math.round(data.weights.lead_time * 100))}
+        ${renderMiniBar('Надёжность', Math.round(data.weights.reliability * 100))}
+        ${renderMiniBar('Риск', Math.round(data.weights.risk * 100))}
+      </div>
+    ` : '';
 
   box.innerHTML = weightsHtml + data.items.map((x, index) => {
     let mlRiskLabel = 'ML не обучена';
@@ -716,6 +731,16 @@ async function loadSupplierRecommendations(materialId) {
             </div>
             <b>${x.topsis_score ?? '—'}%</b>
           </div>
+        </div>
+
+        <div class="criteria-profile">
+          <strong>Профиль критериев:</strong>
+
+          ${renderMiniBar('Рейтинг', Math.round((x.rating_score || 0) * 100))}
+          ${renderMiniBar('Цена', Math.round((x.price_score || 0) * 100))}
+          ${renderMiniBar('Срок', Math.round((x.lead_time_score || 0) * 100))}
+          ${renderMiniBar('Надёжность', Math.round((x.reliability_score || 0) * 100))}
+          ${renderMiniBar('Безопасность', Math.round((1 - (x.risk_score || 0)) * 100))}
         </div>
 
         <div class="recommend-ml">

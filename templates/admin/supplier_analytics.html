@@ -54,6 +54,42 @@
     </div>
   </div>
 
+      <div class="card">
+          <div class="card-header">
+            <h2>Прогноз поведения поставщика</h2>
+          </div>
+
+          {% if ml_prediction is not none %}
+            <div style="padding: 16px;">
+
+              <div style="margin-bottom: 12px;">
+                <strong>Вероятность проблемной поставки:</strong>
+                {{ (ml_prediction * 100)|round(1) }}%
+              </div>
+
+              <div style="margin-bottom: 12px;">
+                <strong>Уровень риска:</strong>
+                {{ ml_risk_level }}
+              </div>
+
+              <div class="recommend-progress">
+                <div class="recommend-progress-fill"
+                     style="width: {{ (ml_prediction * 100)|round(1) }}%;">
+                </div>
+              </div>
+
+              <p style="margin-top: 12px;">
+                {{ ml_behavior_text }}
+              </p>
+
+            </div>
+          {% else %}
+            <div class="logi-empty">
+              Недостаточно данных для ML-прогноза.
+            </div>
+          {% endif %}
+        </div>
+
   <div class="card mt-3">
     <div class="card-header">
       <h2><i class="fas fa-boxes"></i> Материалы и условия</h2>
