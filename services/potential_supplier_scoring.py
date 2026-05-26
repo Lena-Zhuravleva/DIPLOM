@@ -48,21 +48,33 @@ def score_potential_supplier(
     if lead_time_days is not None:
         lead_times.append(lead_time_days)
 
-    min_price = min(prices) if prices else price
-    max_price = max(prices) if prices else price
+    # Базовые диапазоны для новых поставщиков,
+    # если по материалу мало данных в текущей базе
+    if len(prices) < 2:
+        min_price = price * 0.7 if price else None
+        max_price = price * 1.5 if price else None
+    else:
+        min_price = min(prices)
+        max_price = max(prices)
 
-    min_lead = min(lead_times) if lead_times else lead_time_days
-    max_lead = max(lead_times) if lead_times else lead_time_days
+    # Для срока поставки задаём понятную шкалу:
+    # 1 день = отлично, 30 дней = плохо
+    if len(lead_times) < 2:
+        min_lead = 1
+        max_lead = 30
+    else:
+        min_lead = min(lead_times)
+        max_lead = max(lead_times)
 
     ahp_matrix = get_ahp_matrix_by_scenario(scenario)
     ahp_weights = calculate_ahp_weights(ahp_matrix)
 
     weights = {
-        "rating": ahp_weights[0],
-        "price": ahp_weights[1],
-        "lead_time": ahp_weights[2],
-        "reliability": ahp_weights[3],
-        "risk": ahp_weights[4],
+        "rating": 0.20,
+        "price": 0.25,
+        "lead_time": 0.25,
+        "reliability": 0.15,
+        "risk": 0.15,
     }
 
     rating_score = max(0, min(1, rating / 5))
@@ -79,7 +91,12 @@ def score_potential_supplier(
         else 0.5
     )
 
-    reliability_score = 0.5
+    if review_risk_score is not None and float(review_risk_score) <= 0.25 and rating >= 4.0:
+        reliability_score = 0.75
+    elif review_risk_score is not None and float(review_risk_score) <= 0.45 and rating >= 3.5:
+        reliability_score = 0.65
+    else:
+        reliability_score = 0.5
 
     if review_risk_score is None:
         risk_score = 0.5
@@ -95,6 +112,23 @@ def score_potential_supplier(
         weights=weights
     )
 
+    warnings = []
+
+    if price_score < 0.4:
+        warnings.append("Цена поставщика выше средней по категории.")
+
+    if lead_time_score < 0.4:
+        warnings.append("Срок поставки значительно превышает рекомендуемый.")
+
+    if risk_score > 0.6:
+        warnings.append("Обнаружен высокий риск по результатам анализа отзывов.")
+
+    if rating_score < 0.5:
+        warnings.append("Рейтинг поставщика ниже среднего.")
+
+    if reliability_score < 0.6:
+        warnings.append("Надежность поставщика пока недостаточно подтверждена историей поставок.")
+
     return {
         "rating_score": round(rating_score, 3),
         "price_score": round(price_score, 3),
@@ -102,5 +136,6 @@ def score_potential_supplier(
         "reliability_score": round(reliability_score, 3),
         "risk_score": round(risk_score, 3),
         "hybrid_score": hybrid_score,
-        "weights": weights
+        "weights": weights,
+        "warnings": warnings
     }

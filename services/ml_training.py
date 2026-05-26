@@ -18,9 +18,7 @@ FEATURE_COLUMNS = [
     "lead_time_days",
     "supplier_rating",
     "quantity",
-    "duration_min",
-    "delay_minutes",
-    "quality_score"
+    "duration_min"
 ]
 
 
@@ -29,10 +27,10 @@ def prepare_dataframe():
 
     internal_df = pd.DataFrame(rows) if rows else pd.DataFrame()
 
-    external_path = os.path.join("data", "supplier_risk_dataset.csv")
+    external_path = None
     external_df = pd.DataFrame()
 
-    if os.path.exists(external_path):
+    if external_path and os.path.exists(external_path):
         raw = pd.read_csv(external_path)
 
         rename_map = {

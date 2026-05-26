@@ -7,7 +7,8 @@
   <div class="card-header">
     <h2>Оценка нового поставщика</h2>
     <p>
-      Цена и срок вводятся вручную, а качество и риск оцениваются ML-анализом отзывов.
+      Коммерческие данные можно загрузить по ссылке Pulscen или заполнить вручную.
+      Рейтинг и риск рассчитываются на основе ML-анализа отзывов.
     </p>
   </div>
 
@@ -15,17 +16,38 @@
         action="{{ url_for('admin.evaluate_potential_supplier') }}"
         style="display:grid; gap:14px; grid-template-columns: repeat(2, 1fr);">
 
-    <div>
-      <label>Название компании</label>
-      <input class="form-control"
-       id="reviewsCompany"
-       name="reviews_company"
-       placeholder="Например: Girteka Logistics">
+    <div style="grid-column: 1 / -1;">
+      <label>Ссылка на товар / коммерческое предложение</label>
+
+      <div style="display:grid; grid-template-columns: 1fr 220px; gap:10px;">
+        <input class="form-control"
+               id="offerUrl"
+               name="offer_url"
+               placeholder="Например: https://intercom-nn.ru/catalog/kompressory_dlya_kholodilnikov/">
+
+        <button class="btn btn-secondary"
+                type="button"
+                id="loadOfferBtn">
+          Загрузить данные
+        </button>
+      </div>
+
+      <div id="offerLoadStatus" style="margin-top:8px; font-size:14px;"></div>
     </div>
 
     <div>
-      <label>Сайт компании</label>
+      <label>Название компании</label>
       <input class="form-control"
+             id="companyName"
+             name="company_name"
+             placeholder="Например: ООО МеталлСнаб"
+             required>
+    </div>
+
+    <div>
+      <label>Сайт компании / источник</label>
+      <input class="form-control"
+             id="websiteInput"
              name="website"
              placeholder="https://example.ru">
     </div>
@@ -33,14 +55,16 @@
     <div>
       <label>Материал / категория</label>
       <input class="form-control"
+             id="materialQuery"
              name="material_query"
-             placeholder="Например: Арматура"
+             placeholder="Например: Компрессор"
              required>
     </div>
 
     <div>
       <label>Город</label>
       <input class="form-control"
+             id="cityInput"
              name="city"
              placeholder="Например: Воронеж">
     </div>
@@ -48,8 +72,9 @@
     <div>
       <label>Категория</label>
       <input class="form-control"
+             id="categoryInput"
              name="category"
-             placeholder="Например: Металл">
+             placeholder="Например: Холодильные комплектующие">
     </div>
 
     <div>
@@ -65,6 +90,7 @@
     <div>
       <label>Цена</label>
       <input class="form-control"
+             id="priceInput"
              name="price"
              type="number"
              step="0.01"
@@ -75,40 +101,47 @@
     <div>
       <label>Срок поставки, дней</label>
       <input class="form-control"
+             id="leadTimeInput"
              name="lead_time_days"
              type="number"
              placeholder="Например: 5"
              required>
     </div>
 
-      <div style="grid-column: 1 / -1;">
-          <label>Название компании для поиска отзывов</label>
-          <div style="display:grid; grid-template-columns: 1fr 220px; gap:10px;">
-            <input class="form-control"
-               id="companyName"
-               name="company_name"
-               placeholder="Например: ООО МеталлСнаб"
-               required>
-
-            <button class="btn btn-secondary"
-                    type="button"
-                    id="loadReviewsBtn">
-              Найти отзывы
-            </button>
-          </div>
-
-          <div id="reviewsLoadStatus" style="margin-top:8px; font-size:14px;"></div>
-        </div>
-
-    <div style="grid-column: 1 / -1;">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
       <label>Отзывы о поставщике</label>
-     <textarea class="form-control"
-          id="reviewsText"
-          name="reviews_text"
-          rows="8"
-          placeholder="Вставьте несколько отзывов, каждый с новой строки..."
-          required></textarea>
+
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              id="loadReviewsBtn">
+        Найти отзывы
+      </button>
     </div>
+
+    <div id="reviewsLoadStatus"
+         style="margin-bottom:8px; font-size:14px;"></div>
+    <div style="display:grid; grid-template-columns: 1fr 220px; gap:10px; margin-bottom:10px;">
+      <input class="form-control"
+             id="reviewsUrl"
+             name="reviews_url"
+             placeholder="Ссылка на конкретную страницу отзывов, например Otzovik">
+
+      <button type="button"
+              class="btn btn-secondary btn-sm"
+              id="loadReviewsUrlBtn">
+        Загрузить отзывы
+      </button>
+    </div>
+
+    <div id="reviewsUrlStatus"
+         style="margin-bottom:8px; font-size:14px;"></div>
+
+    <textarea class="form-control"
+              id="reviewsText"
+              name="reviews_text"
+              rows="8"
+              placeholder="Отзывы загрузятся автоматически или могут быть вставлены вручную."
+              required></textarea>
 
     <div style="grid-column: 1 / -1;">
       <button class="btn btn-primary" type="submit">
@@ -122,6 +155,31 @@
   <div class="card-header">
     <h2>Результаты оценки новых поставщиков</h2>
   </div>
+
+  <div class="card mt-3">
+  <div class="card-header">
+    <h2>Используемая модель оценки</h2>
+  </div>
+
+  <div style="padding: 16px; line-height: 1.6;">
+    <p>
+      Для предварительной оценки нового поставщика используется гибридная
+      многокритериальная модель, учитывающая цену, срок поставки,
+      рейтинг по отзывам, надежность и риск.
+    </p>
+
+    <div class="formula-box">
+      Hybrid Score =
+      (R<sup>w1</sup> × P<sup>w2</sup> × T<sup>w3</sup> × N<sup>w4</sup> × (1 − Risk)<sup>w5</sup>) × 100
+    </div>
+
+    <p>
+      где R — рейтинг поставщика по отзывам, P — оценка цены,
+      T — оценка срока поставки, N — надежность, Risk — риск по отзывам,
+      а w1–w5 — веса критериев.
+    </p>
+  </div>
+</div>
 
   <div class="table-responsive">
     <table class="data-table">
@@ -138,6 +196,7 @@
           <th>Риск</th>
           <th>Hybrid Score</th>
           <th>Решение</th>
+          <th>Обоснование</th>
           <th>Действие</th>
         </tr>
       </thead>
@@ -162,7 +221,17 @@
 
           <td>
             {% if x.sentiment_score is not none %}
-              {{ (x.sentiment_score * 100)|round(1) }}%
+              {% set sentiment_percent = (x.sentiment_score * 100)|round(1) %}
+
+              <div class="score-mini">
+                <div class="score-mini-bar">
+                  <div class="score-mini-fill"
+                       style="width: {{ sentiment_percent }}%;"></div>
+                </div>
+
+                <small>{{ sentiment_percent }}%</small>
+              </div>
+
             {% else %}
               —
             {% endif %}
@@ -170,16 +239,38 @@
 
           <td>
             {% if x.risk_score is not none %}
-              {{ (x.risk_score * 100)|round(1) }}%
+              {% set risk_percent = (x.risk_score * 100)|round(1) %}
+
+              <div class="score-mini">
+                <div class="score-mini-bar">
+                  <div class="score-mini-fill risk"
+                       style="width: {{ risk_percent }}%;"></div>
+                </div>
+
+                <small>{{ risk_percent }}%</small>
+              </div>
+
             {% else %}
               —
             {% endif %}
           </td>
 
           <td>
-            <strong>{{ x.hybrid_score or '—' }}%</strong>
-          </td>
+            {% if x.hybrid_score is not none %}
 
+              <div class="score-mini">
+                <div class="score-mini-bar">
+                  <div class="score-mini-fill hybrid"
+                       style="width: {{ x.hybrid_score }}%;"></div>
+                </div>
+
+                <strong>{{ x.hybrid_score }}%</strong>
+              </div>
+
+            {% else %}
+              —
+            {% endif %}
+          </td>
           <td>
             {% if x.decision == 'recommended' %}
               <span class="status-badge status-normal">Рекомендуется</span>
@@ -192,6 +283,12 @@
             {% else %}
               {{ x.decision or '—' }}
             {% endif %}
+          </td>
+          <td class="explanation-cell">
+            <details>
+              <summary>Показать</summary>
+              <small>{{ x.raw_description or '—' }}</small>
+            </details>
           </td>
 
           <td>
@@ -209,7 +306,7 @@
         </tr>
         {% else %}
         <tr>
-          <td colspan="12" class="logi-empty">
+          <td colspan="13" class="logi-empty">
             Пока нет оценённых новых поставщиков
           </td>
         </tr>
@@ -218,62 +315,190 @@
     </table>
   </div>
 </div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  const btn = document.getElementById('loadReviewsBtn');
+  const loadOfferBtn = document.getElementById('loadOfferBtn');
 
-  if (!btn) {
-    console.log('Кнопка loadReviewsBtn не найдена');
-    return;
-  }
+  if (!loadOfferBtn) return;
 
-  console.log('Кнопка loadReviewsBtn найдена');
+  loadOfferBtn.onclick = async function () {
+    const offerUrl = document.getElementById('offerUrl');
+    const statusBox = document.getElementById('offerLoadStatus');
 
-  btn.onclick = async function () {
-    console.log('Кнопка Найти отзывы нажата');
+    const companyName = document.getElementById('companyName');
+    const websiteInput = document.getElementById('websiteInput');
+    const materialQuery = document.getElementById('materialQuery');
+    const cityInput = document.getElementById('cityInput');
+    const categoryInput = document.getElementById('categoryInput');
+    const priceInput = document.getElementById('priceInput');
 
-    const companyInput = document.getElementById('reviewsCompany');
-    const reviewsText = document.getElementById('reviewsText');
-    const statusBox = document.getElementById('reviewsLoadStatus');
-
-    console.log('companyInput=', companyInput);
-    console.log('reviewsText=', reviewsText);
-    console.log('statusBox=', statusBox);
-
-    if (!companyInput || !reviewsText || !statusBox) {
-      alert('Не найдены элементы формы для отзывов');
+    if (!offerUrl || !statusBox) {
+      alert('Не найдены элементы формы загрузки предложения');
       return;
     }
 
-    const company = companyInput.value.trim();
+    const url = offerUrl.value.trim();
 
-    if (!company) {
+    if (!url) {
+      statusBox.textContent = 'Введите ссылку на товар или коммерческое предложение.';
+      return;
+    }
+
+    statusBox.textContent = 'Загружаю данные из внешнего источника...';
+
+    const formData = new FormData();
+    formData.append('offer_url', url);
+
+    try {
+      const res = await fetch('{{ url_for("admin.load_offer_for_potential_supplier") }}', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        statusBox.textContent = data.error || 'Не удалось загрузить данные.';
+        return;
+      }
+
+      if (data.company_name && companyName) {
+        companyName.value = data.company_name;
+      }
+
+      if (data.material_query && materialQuery) {
+        materialQuery.value = data.material_query;
+      }
+
+      if (data.city && cityInput) {
+        cityInput.value = data.city;
+      }
+
+      if (data.category && categoryInput) {
+        categoryInput.value = data.category;
+      }
+
+      if (data.price && priceInput) {
+        priceInput.value = data.price;
+      }
+
+      if (websiteInput) {
+        websiteInput.value = url;
+      }
+
+      statusBox.textContent = 'Данные загружены. Проверьте поля, укажите срок поставки и отзывы.';
+
+    } catch (e) {
+      console.log(e);
+      statusBox.textContent = 'Ошибка загрузки данных.';
+    }
+  };
+});
+  const loadReviewsBtn = document.getElementById('loadReviewsBtn');
+
+if (loadReviewsBtn) {
+
+  loadReviewsBtn.onclick = async function () {
+
+    const companyInput = document.getElementById('companyName');
+    const reviewsText = document.getElementById('reviewsText');
+    const statusBox = document.getElementById('reviewsLoadStatus');
+
+    if (!companyInput || !reviewsText || !statusBox) {
+      alert('Не найдены элементы формы отзывов');
+      return;
+    }
+
+    const companyName = companyInput.value.trim();
+
+    if (!companyName) {
       statusBox.textContent = 'Введите название компании.';
       return;
     }
 
-    statusBox.textContent = 'Ищу компанию и отзывы...';
+    statusBox.textContent = 'Ищу отзывы...';
 
     const formData = new FormData();
-    formData.append('reviews_company', company);
+    formData.append('company_name', companyName);
 
-    const res = await fetch('{{ url_for("admin.load_reviews_for_potential_supplier") }}', {
-      method: 'POST',
-      body: formData
-    });
+    try {
 
-    const data = await res.json();
+      const res = await fetch(
+        '{{ url_for("admin.load_reviews_for_potential_supplier") }}',
+        {
+          method: 'POST',
+          body: formData
+        }
+      );
 
-    console.log(data);
+      const data = await res.json();
 
-    if (!data.success) {
-      statusBox.textContent = data.error || 'Компания или отзывы не найдены.';
+      if (!data.success) {
+        statusBox.textContent = data.error || 'Отзывы не найдены.';
+        return;
+      }
+
+      reviewsText.value = data.text || '';
+
+      statusBox.textContent =
+        `Загружено отзывов: ${data.reviews.length}`;
+
+    } catch (e) {
+
+      console.log(e);
+
+      statusBox.textContent =
+        'Ошибка загрузки отзывов.';
+    }
+  };
+}
+  const loadReviewsUrlBtn = document.getElementById('loadReviewsUrlBtn');
+
+if (loadReviewsUrlBtn) {
+  loadReviewsUrlBtn.onclick = async function () {
+    const reviewsUrl = document.getElementById('reviewsUrl');
+    const reviewsText = document.getElementById('reviewsText');
+    const statusBox = document.getElementById('reviewsUrlStatus');
+
+    if (!reviewsUrl || !reviewsText || !statusBox) {
+      alert('Не найдены элементы формы отзывов');
       return;
     }
 
-    reviewsText.value = data.text || '';
-    statusBox.textContent = `Найдена компания: ${data.company_name}. Загружено отзывов: ${data.reviews.length}`;
+    const url = reviewsUrl.value.trim();
+
+    if (!url) {
+      statusBox.textContent = 'Введите ссылку на страницу отзывов.';
+      return;
+    }
+
+    statusBox.textContent = 'Загружаю отзывы...';
+
+    const formData = new FormData();
+    formData.append('reviews_url', url);
+
+    try {
+      const res = await fetch('{{ url_for("admin.load_reviews_from_url_for_potential_supplier") }}', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        statusBox.textContent = data.error || 'Отзывы не найдены.';
+        return;
+      }
+
+      reviewsText.value = data.text || '';
+      statusBox.textContent = `Загружено отзывов: ${data.reviews.length}`;
+    } catch (e) {
+      console.log(e);
+      statusBox.textContent = 'Ошибка загрузки отзывов.';
+    }
   };
-});
+}
 </script>
+
 {% endblock %}

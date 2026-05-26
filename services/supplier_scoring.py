@@ -1,6 +1,7 @@
 from models import SupplierMaterial, Delivery
 from services.ml_training import predict_supplier_risk
 
+# Расчет весов через матрицу попарных сравнений
 def calculate_ahp_weights(matrix):
     n = len(matrix)
 
@@ -19,6 +20,7 @@ def calculate_ahp_weights(matrix):
     return [gm / total for gm in geo_means]
 
 
+#Готовые сценарии приоритетов
 def get_ahp_matrix_by_scenario(scenario):
     """
     Порядок критериев:

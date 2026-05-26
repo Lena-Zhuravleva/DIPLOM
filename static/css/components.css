@@ -823,6 +823,67 @@
 }
 
 
+.score-mini {
+  min-width: 120px;
+}
+
+.score-mini-bar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.score-mini-fill {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 999px;
+}
+
+.score-mini-fill.risk {
+  background: #f97316;
+}
+
+.score-mini-fill.hybrid {
+  background: #16a34a;
+}
+.explanation-cell {
+  max-width: 180px;
+  min-width: 120px;
+  white-space: normal;
+}
+
+.explanation-cell details {
+  max-width: 180px;
+}
+
+.explanation-cell summary {
+  cursor: pointer;
+  color: #2563eb;
+  font-size: 13px;
+}
+
+.explanation-cell small {
+  display: block;
+  margin-top: 6px;
+  max-width: 180px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+.formula-box {
+  padding: 14px 16px;
+  background: #f3f4f6;
+  border-radius: 10px;
+  font-weight: 600;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+
+
 
 
 

@@ -1,0 +1,28 @@
+services:
+  db:
+    image: mysql:8.0
+    container_name: logistics_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: logistics_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./Sql/logistics_db_dump.sql:/docker-entrypoint-initdb.d/01_dump.sql:ro
+
+  web:
+    build: .
+    container_name: logistics_web
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "5000:5000"
+    environment:
+      DATABASE_URL: mysql+mysqlconnector://root:root@db/logistics_db
+      SECRET_KEY: dev-secret-key
+
+volumes:
+  mysql_data:

@@ -7,7 +7,9 @@ from services.ml_dataset import build_supplier_ml_dataset
 from services.ml_training import predict_supplier_risk, train_supplier_risk_model, load_supplier_risk_model, MODEL_PATH
 from services.potential_supplier_scoring import score_potential_supplier
 from services.review_sentiment import analyze_reviews_text
-from services.review_parser import parse_reviews_from_company_name
+from services.external_offer_parser import parse_external_offer
+from services.review_search import search_reviews_by_company
+from services.review_url_parser import parse_reviews_from_url
 
 import os
 
@@ -580,12 +582,67 @@ def evaluate_potential_supplier():
         scenario=scenario
     )
 
+    warnings = scoring.get("warnings", [])
+
     hybrid_score = scoring["hybrid_score"]
     risk_score = scoring["risk_score"]
 
-    if hybrid_score >= 75 and risk_score <= 0.35:
+    explanation_parts = []
+
+    if sentiment["sentiment_score"] >= 0.75:
+        explanation_parts.append("Отзывы преимущественно положительные.")
+    elif sentiment["sentiment_score"] >= 0.45:
+        explanation_parts.append("Отзывы имеют смешанную тональность.")
+    else:
+        explanation_parts.append("В отзывах преобладают негативные признаки.")
+
+    if risk_score <= 0.3:
+        explanation_parts.append("Репутационный риск оценивается как низкий.")
+    elif risk_score <= 0.6:
+        explanation_parts.append("Репутационный риск находится на среднем уровне.")
+    else:
+        explanation_parts.append("Репутационный риск высокий.")
+
+    if hybrid_score >= 75:
+        explanation_parts.append("Интегральная оценка поставщика достаточно высокая.")
+    elif hybrid_score >= 55:
+        explanation_parts.append("Интегральная оценка поставщика средняя, поэтому требуется осторожность.")
+    else:
+        explanation_parts.append("Интегральная оценка поставщика низкая.")
+
+    explanation_parts.append(
+        "Надежность нового поставщика принята нейтральной, так как история фактических поставок отсутствует."
+    )
+    for warning in warnings:
+        explanation_parts.append(warning)
+
+    score_details = (
+        f"Компоненты оценки: "
+        f"цена — {round(scoring['price_score'] * 100, 1)}%; "
+        f"срок — {round(scoring['lead_time_score'] * 100, 1)}%; "
+        f"рейтинг — {round(scoring['rating_score'] * 100, 1)}%; "
+        f"надежность — {round(scoring['reliability_score'] * 100, 1)}%; "
+        f"риск — {round(scoring['risk_score'] * 100, 1)}%."
+    )
+
+    explanation_parts.append(score_details)
+
+    score_details = (
+        f"Компоненты оценки: "
+        f"цена — {round(scoring['price_score'] * 100, 1)}%; "
+        f"срок — {round(scoring['lead_time_score'] * 100, 1)}%; "
+        f"рейтинг — {round(scoring['rating_score'] * 100, 1)}%; "
+        f"надежность — {round(scoring['reliability_score'] * 100, 1)}%; "
+        f"риск — {round(scoring['risk_score'] * 100, 1)}%."
+    )
+
+    explanation_parts.append(score_details)
+
+    decision_explanation = " ".join(explanation_parts)
+
+    if hybrid_score >= 75 and risk_score <= 0.45:
         decision = 'recommended'
-    elif hybrid_score >= 55 and risk_score <= 0.6:
+    elif hybrid_score >= 55 and risk_score <= 0.65:
         decision = 'caution'
     else:
         decision = 'not_recommended'
@@ -606,7 +663,7 @@ def evaluate_potential_supplier():
         risk_score=scoring["risk_score"],
         hybrid_score=scoring["hybrid_score"],
         decision=decision,
-        raw_description=reviews_text
+        raw_description=decision_explanation
     )
 
     db.session.add(item)
@@ -656,21 +713,64 @@ def add_potential_to_suppliers(item_id):
     flash('Поставщик добавлен в основную базу', 'success')
     return redirect(url_for('admin.potential_suppliers_page'))
 
+
+@admin_bp.route('/admin/potential-suppliers/load-offer', methods=['POST'])
+@role_required('admin')
+def load_offer_for_potential_supplier():
+    url = request.form.get('offer_url', '').strip()
+
+    if not url:
+        return {
+            "success": False,
+            "error": "Введите ссылку на товар или коммерческое предложение"
+        }
+
+    try:
+        result = parse_external_offer(url)
+        return result
+
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+
 @admin_bp.route('/admin/potential-suppliers/load-reviews', methods=['POST'])
 @role_required('admin')
 def load_reviews_for_potential_supplier():
-    company_query = request.form.get('reviews_company', '').strip()
 
-    if not company_query:
+    company_name = request.form.get('company_name', '').strip()
+
+    if not company_name:
         return {
             "success": False,
             "error": "Введите название компании"
         }
 
     try:
-        result = parse_reviews_from_company_name(company_query, limit=5)
+        result = search_reviews_by_company(company_name)
         return result
 
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e)
+        }
+
+@admin_bp.route('/admin/potential-suppliers/load-reviews-url', methods=['POST'])
+@role_required('admin')
+def load_reviews_from_url_for_potential_supplier():
+    url = request.form.get('reviews_url', '').strip()
+
+    if not url:
+        return {
+            "success": False,
+            "error": "Введите ссылку на страницу отзывов"
+        }
+
+    try:
+        return parse_reviews_from_url(url, limit=15)
     except Exception as e:
         return {
             "success": False,
