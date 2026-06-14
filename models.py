@@ -233,6 +233,10 @@ class SupplierMaterial(db.Model):
     supplier_id = db.Column(db.Integer, db.ForeignKey('suppliers.id'), primary_key=True)
     material_id = db.Column(db.Integer, db.ForeignKey('materials.id'), primary_key=True)
 
+    delivery_cost = db.Column(db.Numeric(10, 2), default=0)
+    incoterms = db.Column(db.String(10), default='EXW')
+    quality_score = db.Column(db.Integer, default=5)
+
     price = db.Column(db.Numeric(10, 2), nullable=True)
     lead_time_days = db.Column(db.Integer, nullable=True)
     is_active = db.Column(db.Boolean, default=True)
@@ -287,6 +291,9 @@ class PotentialSupplier(db.Model):
     website = db.Column(db.String(255))
     city = db.Column(db.String(100))
     category = db.Column(db.String(100))
+
+    delivery_cost = db.Column(db.Numeric(10, 2), default=0)
+    incoterms = db.Column(db.String(10), default='EXW')
 
     source_url = db.Column(db.String(255))
     material_query = db.Column(db.String(100))

@@ -97,6 +97,8 @@ def supplier_materials():
             'category': r.material.category,
             'unit': r.material.unit,
             'price': float(r.price) if r.price is not None else None,
+            'delivery_cost': float(r.delivery_cost) if r.delivery_cost is not None else 0,
+            'incoterms': r.incoterms or 'EXW',
             'lead_time_days': r.lead_time_days,
             'price_updated_at': r.price_updated_at.strftime('%d.%m.%Y %H:%M') if r.price_updated_at else None,
             'can_update': can_update,
@@ -138,18 +140,29 @@ def supplier_update_material_terms(material_id):
 
     try:
         price = float(data.get('price'))
+        delivery_cost = float(data.get('delivery_cost'))
+        incoterms = data.get('incoterms') or 'EXW'
         lead_time_days = int(data.get('lead_time_days'))
 
         if price <= 0:
-            return jsonify({'success': False, 'error': 'Цена должна быть больше 0'}), 400
+            return jsonify({'success': False, 'error': 'Цена материала должна быть больше 0'}), 400
+
+        if delivery_cost < 0:
+            return jsonify({'success': False, 'error': 'Стоимость доставки не может быть отрицательной'}), 400
 
         if lead_time_days <= 0:
             return jsonify({'success': False, 'error': 'Срок должен быть больше 0'}), 400
 
+        allowed_incoterms = ['EXW', 'FCA', 'FOB', 'CIF', 'DAP', 'DDP']
+        if incoterms not in allowed_incoterms:
+            return jsonify({'success': False, 'error': 'Некорректное условие Incoterms'}), 400
+
     except Exception:
-        return jsonify({'success': False, 'error': 'Некорректные цена или срок'}), 400
+        return jsonify({'success': False, 'error': 'Некорректные коммерческие условия'}), 400
 
     row.price = price
+    row.delivery_cost = delivery_cost
+    row.incoterms = incoterms
     row.lead_time_days = lead_time_days
     row.price_updated_at = now
 

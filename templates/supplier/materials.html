@@ -18,14 +18,16 @@
           <th>Материал</th>
           <th>Категория</th>
           <th>Ед.</th>
-          <th>Цена</th>
+          <th>Цена материала</th>
+          <th>Стоимость доставки</th>
+          <th>Incoterms</th>
           <th>Срок, дней</th>
           <th>Последнее обновление</th>
           <th>Действия</th>
         </tr>
       </thead>
       <tbody>
-        <tr><td colspan="8">Загрузка…</td></tr>
+        <tr><td colspan="10">Загрузка…</td></tr>
       </tbody>
     </table>
   </div>
@@ -41,18 +43,18 @@ function escapeHtml(str) {
 
 async function loadMaterials() {
   const tbody = document.querySelector('#materialsTable tbody');
-  tbody.innerHTML = `<tr><td colspan="8">Загрузка…</td></tr>`;
+  tbody.innerHTML = `<tr><td colspan="10">Загрузка…</td></tr>`;
 
   const res = await fetch('/api/supplier/materials');
   const data = await res.json();
 
   if (!data.success) {
-    tbody.innerHTML = `<tr><td colspan="8">${escapeHtml(data.error || 'Ошибка')}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10">${escapeHtml(data.error || 'Ошибка')}</td></tr>`;
     return;
   }
 
   if (!data.items.length) {
-    tbody.innerHTML = `<tr><td colspan="8">Материалы не назначены</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="10">Материалы не назначены</td></tr>`;
     return;
   }
 
@@ -72,6 +74,28 @@ async function loadMaterials() {
                value="${item.price ?? ''}"
                ${item.can_update ? '' : 'disabled'}>
       </td>
+      <td>
+          <input class="form-control"
+                 type="number"
+                 step="0.01"
+                 min="0"
+                 id="delivery_cost_${item.id}"
+                 value="${item.delivery_cost ?? 0}"
+                 ${item.can_update ? '' : 'disabled'}>
+        </td>
+
+        <td>
+          <select class="form-control"
+                  id="incoterms_${item.id}"
+                  ${item.can_update ? '' : 'disabled'}>
+            <option value="EXW" ${item.incoterms === 'EXW' ? 'selected' : ''}>EXW</option>
+            <option value="FCA" ${item.incoterms === 'FCA' ? 'selected' : ''}>FCA</option>
+            <option value="FOB" ${item.incoterms === 'FOB' ? 'selected' : ''}>FOB</option>
+            <option value="CIF" ${item.incoterms === 'CIF' ? 'selected' : ''}>CIF</option>
+            <option value="DAP" ${item.incoterms === 'DAP' ? 'selected' : ''}>DAP</option>
+            <option value="DDP" ${item.incoterms === 'DDP' ? 'selected' : ''}>DDP</option>
+          </select>
+        </td>
 
       <td>
         <input class="form-control"
@@ -97,18 +121,21 @@ async function loadMaterials() {
 
 async function saveTerms(materialId) {
   const price = document.getElementById(`price_${materialId}`).value;
+  const deliveryCost = document.getElementById(`delivery_cost_${materialId}`).value;
+  const incoterms = document.getElementById(`incoterms_${materialId}`).value;
   const lead = document.getElementById(`lead_${materialId}`).value;
-
-  if (!price || !lead) {
-    alert('Заполните цену и срок');
-    return;
-  }
+  if (!price || deliveryCost === '' || !lead) {
+      alert('Заполните цену материала, стоимость доставки и срок');
+      return;
+    }
 
   const res = await fetch(`/api/supplier/materials/${materialId}/update_terms`, {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({
       price: price,
+      delivery_cost: deliveryCost,
+      incoterms: incoterms,
       lead_time_days: lead
     })
   });

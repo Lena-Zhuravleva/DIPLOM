@@ -88,7 +88,7 @@
     </div>
 
     <div>
-      <label>Цена</label>
+      <label>Цена материала</label>
       <input class="form-control"
              id="priceInput"
              name="price"
@@ -96,6 +96,19 @@
              step="0.01"
              placeholder="Например: 1200"
              required>
+    </div>
+    <div>
+      <label>Цена доставки</label>
+      <input class="form-control" name="delivery_cost" type="number" step="0.01" min="0" placeholder="Стоимость доставки">
+
+        <select class="form-control" name="incoterms">
+          <option value="EXW">EXW</option>
+          <option value="FCA">FCA</option>
+          <option value="FOB">FOB</option>
+          <option value="CIF">CIF</option>
+          <option value="DAP">DAP</option>
+          <option value="DDP">DDP</option>
+        </select>
     </div>
 
     <div>
@@ -110,12 +123,6 @@
 
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <label>Отзывы о поставщике</label>
-
-      <button type="button"
-              class="btn btn-secondary btn-sm"
-              id="loadReviewsBtn">
-        Найти отзывы
-      </button>
     </div>
 
     <div id="reviewsLoadStatus"

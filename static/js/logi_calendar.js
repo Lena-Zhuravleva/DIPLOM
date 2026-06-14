@@ -676,6 +676,7 @@ async function loadSupplierRecommendations(materialId) {
         ${renderMiniBar('Рейтинг', Math.round(data.weights.rating * 100))}
         ${renderMiniBar('Цена', Math.round(data.weights.price * 100))}
         ${renderMiniBar('Срок', Math.round(data.weights.lead_time * 100))}
+        ${renderMiniBar('Качество', Math.round(data.weights.quality * 100))}
         ${renderMiniBar('Надёжность', Math.round(data.weights.reliability * 100))}
         ${renderMiniBar('Риск', Math.round(data.weights.risk * 100))}
       </div>
@@ -706,8 +707,12 @@ async function loadSupplierRecommendations(materialId) {
 
         <div class="recommend-meta">
           <span>Рейтинг: ${x.rating ?? '—'}</span>
-          <span>Цена: ${x.price ?? '—'}</span>
+          <span>Стоимость поставки: ${x.supply_cost ?? '—'}</span>
+          <span>Цена материала: ${x.material_price ?? '—'}</span>
+          <span>Доставка: ${x.delivery_cost ?? '—'}</span>
+          <span>Incoterms: ${x.incoterms ?? '—'}</span>
           <span>Срок: ${x.lead_time_days ?? '—'} дн.</span>
+          <span>Среднее качество: ${x.avg_quality ?? '—'}</span>
           <span>Надёжность: ${x.reliability_score !== undefined ? Math.round(x.reliability_score * 100) + '%' : '—'}</span>
           <span>Риск: ${x.risk_score !== undefined ? Math.round(x.risk_score * 100) + '%' : '—'}</span>
           <span>Средняя задержка: ${x.avg_delay ?? '—'} мин</span>
@@ -739,6 +744,7 @@ async function loadSupplierRecommendations(materialId) {
           ${renderMiniBar('Рейтинг', Math.round((x.rating_score || 0) * 100))}
           ${renderMiniBar('Цена', Math.round((x.price_score || 0) * 100))}
           ${renderMiniBar('Срок', Math.round((x.lead_time_score || 0) * 100))}
+          ${renderMiniBar('Качество', Math.round((x.quality_score || 0) * 100))}
           ${renderMiniBar('Надёжность', Math.round((x.reliability_score || 0) * 100))}
           ${renderMiniBar('Безопасность', Math.round((1 - (x.risk_score || 0)) * 100))}
         </div>

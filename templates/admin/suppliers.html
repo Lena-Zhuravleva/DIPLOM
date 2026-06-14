@@ -3,43 +3,13 @@
 
 {% block content %}
 
-<!-- ===== Добавление поставщика ===== -->
 <div class="card">
   <div class="card-header">
-    <h2><i class="fas fa-truck"></i> Поставщики</h2>
-  </div>
-
-  <div class="table-responsive">
-    <form method="POST" action="/admin/suppliers/create" class="mb-3"
-          style="display:grid; gap:12px; grid-template-columns: 1fr 1fr;">
-
-      <input class="form-control" name="company_name" placeholder="Название компании" required>
-
-      <select class="form-control" name="delivery_zone">
-        <option value="local">local</option>
-        <option value="regional">regional</option>
-        <option value="international">international</option>
-      </select>
-
-      <input class="form-control" name="contact_person" placeholder="Контактное лицо">
-      <input class="form-control" name="delivery_time_days" type="number" min="1" value="1" placeholder="Срок (дней)">
-
-      <input class="form-control" name="specialization" placeholder="Специализация (опц.)">
-      <input class="form-control" name="address" placeholder="Адрес (опц.)">
-
-      <div style="grid-column: 1 / -1;">
-        <button type="submit" class="btn btn-primary btn-block">
-          <i class="fas fa-plus"></i> Добавить поставщика
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- ===== Список поставщиков ===== -->
-<div class="card">
-  <div class="card-header">
-    <h2><i class="fas fa-list"></i> Управление поставщиками</h2>
+    <h2><i class="fas fa-list"></i> Карточки поставщиков</h2>
+    <p class="register-subtitle">
+      Поставщики создаются через раздел «Пользователи» при выборе роли «Поставщик».
+      Здесь редактируются данные контрагента.
+    </p>
   </div>
 
   <div class="table-responsive">
@@ -50,6 +20,8 @@
           <th>Компания</th>
           <th class="center">Зона</th>
           <th>Контакт</th>
+          <th>Специализация</th>
+          <th>Адрес</th>
           <th class="num">Срок</th>
           <th class="center">Статус</th>
           <th class="center">Действия</th>
@@ -59,40 +31,78 @@
       <tbody>
         {% for s in suppliers %}
         <tr>
-          <td class="num">{{ s.id }}</td>
-          <td title="{{ s.company_name }}">{{ s.company_name }}</td>
-          <td class="center">{{ s.delivery_zone }}</td>
-          <td title="{{ s.contact_person or '' }}">{{ s.contact_person or '—' }}</td>
-          <td class="num">{{ s.delivery_time_days }} дн.</td>
-          <td class="center">
-            {% if s.is_active %}
-              <span class="status-badge status-active">Активен</span>
-            {% else %}
-              <span class="status-badge status-inactive">Неактивен</span>
-            {% endif %}
-          </td>
-          <td class="center">
-            {% if s.is_active %}
-              <form method="POST" action="{{ url_for('admin.deactivate_supplier', supplier_id=s.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-danger btn-sm"
-                        onclick="return confirm('Деактивировать поставщика?')">
-                  Деактивировать
-                </button>
-              </form>
-            {% else %}
-              <form method="POST" action="{{ url_for('admin.activate_supplier', supplier_id=s.id) }}" style="display:inline;">
-                <button type="submit" class="btn btn-primary btn-sm"
-                        onclick="return confirm('Восстановить поставщика?')">
-                  Восстановить
-                </button>
-              </form>
-            {% endif %}
-          </td>
+          <form method="POST" action="{{ url_for('admin.update_supplier', supplier_id=s.id) }}">
+            <td class="num">{{ s.id }}</td>
+
+            <td>
+              <input class="form-control" name="company_name"
+                     value="{{ s.company_name or '' }}" required>
+            </td>
+
+            <td class="center">
+              <select class="form-control" name="delivery_zone">
+                <option value="local" {% if s.delivery_zone == 'local' %}selected{% endif %}>local</option>
+                <option value="regional" {% if s.delivery_zone == 'regional' %}selected{% endif %}>regional</option>
+                <option value="international" {% if s.delivery_zone == 'international' %}selected{% endif %}>international</option>
+              </select>
+            </td>
+
+            <td>
+              <input class="form-control" name="contact_person"
+                     value="{{ s.contact_person or '' }}">
+            </td>
+
+            <td>
+              <input class="form-control" name="specialization"
+                     value="{{ s.specialization or '' }}">
+            </td>
+
+            <td>
+              <input class="form-control" name="address"
+                     value="{{ s.address or '' }}">
+            </td>
+
+            <td class="num">
+              <input class="form-control" name="delivery_time_days"
+                     type="number" min="1"
+                     value="{{ s.delivery_time_days or 1 }}">
+            </td>
+
+            <td class="center">
+              {% if s.is_active %}
+                <span class="status-badge status-active">Активен</span>
+              {% else %}
+                <span class="status-badge status-inactive">Неактивен</span>
+              {% endif %}
+            </td>
+
+            <td class="center">
+              <button type="submit" class="btn btn-primary btn-sm">
+                Сохранить
+              </button>
+          </form>
+
+              {% if s.is_active %}
+                <form method="POST" action="{{ url_for('admin.update_supplier', supplier_id=s.id) }}" style="display:inline;">
+                  <button type="submit" class="btn btn-danger btn-sm"
+                          onclick="return confirm('Деактивировать поставщика?')">
+                    Деактивировать
+                  </button>
+                </form>
+              {% else %}
+                <form method="POST" action="{{ url_for('admin.activate_supplier', supplier_id=s.id) }}" style="display:inline;">
+                  <button type="submit" class="btn btn-primary btn-sm"
+                          onclick="return confirm('Восстановить поставщика?')">
+                    Восстановить
+                  </button>
+                </form>
+              {% endif %}
+            </td>
         </tr>
         {% endfor %}
 
         {% if suppliers|length == 0 %}
-          <tr><td colspan="7" class="logi-empty">Поставщиков пока нет</td></tr>
+          <tr><td colspan="9" class="logi-empty">Поставщиков пока нет</td></tr>
         {% endif %}
       </tbody>
     </table>

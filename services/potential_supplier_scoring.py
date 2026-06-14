@@ -1,17 +1,33 @@
 from models import SupplierMaterial, Material
 from services.supplier_scoring import (
     normalize_cost,
-    calculate_ahp_weights,
+    calculate_supply_cost,
+    calculate_nonlinear_score,
     get_ahp_matrix_by_scenario,
-    calculate_nonlinear_score
+    calculate_ahp_weights
 )
 
+
+def build_weights_by_scenario(scenario):
+    ahp_matrix = get_ahp_matrix_by_scenario(scenario)
+    ahp_weights = calculate_ahp_weights(ahp_matrix)
+
+    return {
+        "rating": ahp_weights[0],
+        "price": ahp_weights[1],
+        "lead_time": ahp_weights[2],
+        "quality": ahp_weights[3],
+        "reliability": ahp_weights[4],
+        "risk": ahp_weights[5],
+    }
 
 def score_potential_supplier(
     material_query,
     price,
     lead_time_days,
     rating,
+    delivery_cost=0,
+    incoterms='EXW',
     review_risk_score=None,
     scenario='balanced'
 ):
@@ -22,7 +38,7 @@ def score_potential_supplier(
             Material.name.ilike(f'%{material_query}%')
         ).first()
 
-    prices = []
+    supply_costs = []
     lead_times = []
 
     if material:
@@ -31,7 +47,12 @@ def score_potential_supplier(
             is_active=True
         ).all()
 
-        prices = [float(r.price) for r in rows if r.price is not None]
+        supply_costs = [
+            calculate_supply_cost(r.price, r.delivery_cost, r.incoterms)
+            for r in rows
+            if r.price is not None
+        ]
+
         lead_times = [
             int(r.lead_time_days)
             for r in rows
@@ -39,26 +60,26 @@ def score_potential_supplier(
         ]
 
     price = float(price) if price not in [None, ''] else None
+    delivery_cost = float(delivery_cost) if delivery_cost not in [None, ''] else 0
+    incoterms = incoterms or 'EXW'
     lead_time_days = int(lead_time_days) if lead_time_days not in [None, ''] else None
     rating = float(rating) if rating not in [None, ''] else 3.0
 
-    if price is not None:
-        prices.append(price)
+    supply_cost = calculate_supply_cost(price, delivery_cost, incoterms) if price is not None else None
+
+    if supply_cost is not None:
+        supply_costs.append(supply_cost)
 
     if lead_time_days is not None:
         lead_times.append(lead_time_days)
 
-    # Базовые диапазоны для новых поставщиков,
-    # если по материалу мало данных в текущей базе
-    if len(prices) < 2:
-        min_price = price * 0.7 if price else None
-        max_price = price * 1.5 if price else None
+    if len(supply_costs) < 2:
+        min_price = supply_cost * 0.7 if supply_cost else None
+        max_price = supply_cost * 1.5 if supply_cost else None
     else:
-        min_price = min(prices)
-        max_price = max(prices)
+        min_price = min(supply_costs)
+        max_price = max(supply_costs)
 
-    # Для срока поставки задаём понятную шкалу:
-    # 1 день = отлично, 30 дней = плохо
     if len(lead_times) < 2:
         min_lead = 1
         max_lead = 30
@@ -66,22 +87,13 @@ def score_potential_supplier(
         min_lead = min(lead_times)
         max_lead = max(lead_times)
 
-    ahp_matrix = get_ahp_matrix_by_scenario(scenario)
-    ahp_weights = calculate_ahp_weights(ahp_matrix)
-
-    weights = {
-        "rating": 0.20,
-        "price": 0.25,
-        "lead_time": 0.25,
-        "reliability": 0.15,
-        "risk": 0.15,
-    }
+    weights = build_weights_by_scenario(scenario)
 
     rating_score = max(0, min(1, rating / 5))
 
     price_score = (
-        normalize_cost(price, min_price, max_price)
-        if price is not None
+        normalize_cost(supply_cost, min_price, max_price)
+        if supply_cost is not None
         else 0.5
     )
 
@@ -90,6 +102,10 @@ def score_potential_supplier(
         if lead_time_days is not None
         else 0.5
     )
+
+    # Для нового поставщика нет истории фактических поставок,
+    # поэтому качество принимается нейтральным.
+    quality_score = 0.7
 
     if review_risk_score is not None and float(review_risk_score) <= 0.25 and rating >= 4.0:
         reliability_score = 0.75
@@ -107,6 +123,7 @@ def score_potential_supplier(
         rating_score=rating_score,
         price_score=price_score,
         lead_time_score=lead_time_score,
+        quality_score=quality_score,
         reliability_score=reliability_score,
         risk_score=risk_score,
         weights=weights
@@ -115,7 +132,7 @@ def score_potential_supplier(
     warnings = []
 
     if price_score < 0.4:
-        warnings.append("Цена поставщика выше средней по категории.")
+        warnings.append("Стоимость поставки выше средней по категории.")
 
     if lead_time_score < 0.4:
         warnings.append("Срок поставки значительно превышает рекомендуемый.")
@@ -133,9 +150,22 @@ def score_potential_supplier(
         "rating_score": round(rating_score, 3),
         "price_score": round(price_score, 3),
         "lead_time_score": round(lead_time_score, 3),
+        "quality_score": round(quality_score, 3),
         "reliability_score": round(reliability_score, 3),
         "risk_score": round(risk_score, 3),
         "hybrid_score": hybrid_score,
-        "weights": weights,
-        "warnings": warnings
+        "weights": {
+            "rating": round(weights["rating"], 3),
+            "price": round(weights["price"], 3),
+            "lead_time": round(weights["lead_time"], 3),
+            "quality": round(weights["quality"], 3),
+            "reliability": round(weights["reliability"], 3),
+            "risk": round(weights["risk"], 3),
+        },
+        "warnings": warnings,
+
+        "supply_cost": round(supply_cost, 2) if supply_cost is not None else None,
+        "material_price": round(price, 2) if price is not None else None,
+        "delivery_cost": round(delivery_cost, 2),
+        "incoterms": incoterms
     }

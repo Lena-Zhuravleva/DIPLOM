@@ -7,7 +7,7 @@
     <div class="card-header">
       <h2><i class="fas fa-boxes"></i> Ассортимент поставщиков</h2>
       <p class="register-subtitle">
-        Здесь задаются материалы, цена и срок поставки по каждому поставщику.
+        Здесь задаются материалы, цена, стоимость доставки, условия Incoterms и срок поставкипо каждому поставщику.
       </p>
     </div>
 
@@ -55,11 +55,37 @@
                     step="0.01"
                     min="0"
                     name="price_{{ s.id }}_{{ m.id }}"
-                    placeholder="Цена"
+                    placeholder="Цена материала"
                     value="{{ rel.price if rel and rel.price is not none else '' }}"
                     {% if s.is_active is defined and not s.is_active %}disabled{% endif %}
                     style="margin-bottom:6px;"
                   >
+
+                  <input
+                    class="form-control"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    name="delivery_cost_{{ s.id }}_{{ m.id }}"
+                    placeholder="Цена доставки"
+                    value="{{ rel.delivery_cost if rel and rel.delivery_cost is not none else '' }}"
+                    {% if s.is_active is defined and not s.is_active %}disabled{% endif %}
+                    style="margin-bottom:6px;"
+                  >
+
+                  <select
+                    class="form-control"
+                    name="incoterms_{{ s.id }}_{{ m.id }}"
+                    {% if s.is_active is defined and not s.is_active %}disabled{% endif %}
+                    style="margin-bottom:6px;"
+                  >
+                    <option value="EXW" {% if rel and rel.incoterms == 'EXW' %}selected{% endif %}>EXW</option>
+                    <option value="FCA" {% if rel and rel.incoterms == 'FCA' %}selected{% endif %}>FCA</option>
+                    <option value="FOB" {% if rel and rel.incoterms == 'FOB' %}selected{% endif %}>FOB</option>
+                    <option value="CIF" {% if rel and rel.incoterms == 'CIF' %}selected{% endif %}>CIF</option>
+                    <option value="DAP" {% if rel and rel.incoterms == 'DAP' %}selected{% endif %}>DAP</option>
+                    <option value="DDP" {% if rel and rel.incoterms == 'DDP' %}selected{% endif %}>DDP</option>
+                  </select>
 
                   <input
                     class="form-control"
@@ -69,7 +95,9 @@
                     placeholder="Срок, дней"
                     value="{{ rel.lead_time_days if rel and rel.lead_time_days is not none else '' }}"
                     {% if s.is_active is defined and not s.is_active %}disabled{% endif %}
+                    style="margin-bottom:6px;"
                   >
+
                 </td>
               {% endfor %}
             </tr>

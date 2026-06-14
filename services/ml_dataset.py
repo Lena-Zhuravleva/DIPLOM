@@ -47,7 +47,45 @@ def build_supplier_ml_dataset():
             material_id=material.id
         ).first()
 
-        price = float(relation.price) if relation and relation.price is not None else None
+        if relation and relation.price is not None:
+
+            delivery_cost = float(relation.delivery_cost or 0)
+
+            coeffs = {
+                'EXW': 1.0,
+                'FCA': 0.8,
+                'FOB': 0.5,
+                'CIF': 0.2,
+                'DAP': 0.1,
+                'DDP': 0.0
+            }
+
+            coeff = coeffs.get(relation.incoterms or 'EXW', 1)
+
+            price = float(relation.price) + delivery_cost * coeff
+
+        else:
+
+            if relation and relation.price is not None:
+
+                delivery_cost = float(relation.delivery_cost or 0)
+
+                coeffs = {
+                    'EXW': 1.0,
+                    'FCA': 0.8,
+                    'FOB': 0.5,
+                    'CIF': 0.2,
+                    'DAP': 0.1,
+                    'DDP': 0.0
+                }
+
+                coeff = coeffs.get(relation.incoterms or 'EXW', 1)
+
+                price = float(relation.price) + delivery_cost * coeff
+
+            else:
+
+                price = None
         lead_time_days = relation.lead_time_days if relation else None
 
         row = {
@@ -61,9 +99,6 @@ def build_supplier_ml_dataset():
 
             "quantity": float(d.quantity or 0),
             "duration_min": int(d.duration_min or 0),
-
-            "delay_minutes": int(d.delay_minutes or 0),
-            "quality_score": int(d.quality_score or 0),
 
             "status": d.status,
             "target_problem": delivery_target_is_problem(d)

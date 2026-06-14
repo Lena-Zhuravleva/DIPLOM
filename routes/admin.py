@@ -15,44 +15,6 @@ import os
 
 admin_bp = Blueprint('admin', __name__)
 
-
-@admin_bp.route('/admin/suppliers/create', methods=['POST'])
-@role_required('admin')
-def admin_create_supplier():
-    company_name = request.form.get('company_name', '').strip()
-    address = request.form.get('address', '').strip()
-    delivery_zone = request.form.get('delivery_zone', 'local')
-    specialization = request.form.get('specialization', '').strip()
-    contact_person = request.form.get('contact_person', '').strip()
-    delivery_time_days = request.form.get('delivery_time_days', '1').strip()
-
-    if not company_name:
-        flash('Название компании обязательно', 'error')
-        return redirect(url_for('suppliers.suppliers_page'))  # лучше на страницу поставщиков
-
-    try:
-        if Supplier.query.filter_by(company_name=company_name).first():
-            flash('Поставщик с таким названием уже существует', 'error')
-            return redirect(url_for('suppliers.suppliers_page'))
-
-        s = Supplier(
-            company_name=company_name,
-            address=address or None,
-            delivery_zone=delivery_zone,
-            specialization=specialization or None,
-            contact_person=contact_person or None,
-            delivery_time_days=int(delivery_time_days) if delivery_time_days.isdigit() else 1
-        )
-        db.session.add(s)
-        db.session.commit()
-        flash('Поставщик добавлен', 'success')
-    except Exception as e:
-        db.session.rollback()
-        flash(f'Ошибка при добавлении поставщика: {str(e)}', 'error')
-
-    return redirect(url_for('suppliers.suppliers_page'))
-
-
 @admin_bp.route('/admin/suppliers/materials/save', methods=['POST'])
 @role_required('admin')
 def admin_save_supplier_materials():
@@ -122,6 +84,9 @@ def save_supplier_materials_matrix():
         price = None
         lead_time_days = None
 
+        delivery_cost_raw = request.form.get(f'delivery_cost_{supplier_id}_{material_id}')
+        incoterms = request.form.get(f'incoterms_{supplier_id}_{material_id}') or 'EXW'
+
         if price_raw:
             price = float(price_raw)
 
@@ -133,7 +98,9 @@ def save_supplier_materials_matrix():
             material_id=material_id,
             price=price,
             lead_time_days=lead_time_days,
-            is_active=True
+            is_active=True,
+            delivery_cost = float(delivery_cost_raw) if delivery_cost_raw else 0,
+            incoterms = incoterms
         )
 
         db.session.add(row)
@@ -209,6 +176,23 @@ def admin_users_create():
         flash(f'Ошибка при регистрации пользователя: {str(e)}', 'error')
 
     return redirect(url_for('admin.admin_users_page'))
+
+# обновление данных о поставщиках
+@admin_bp.route('/admin/suppliers/<int:supplier_id>/update', methods=['POST'])
+@role_required('admin')
+def update_supplier(supplier_id):
+    supplier = Supplier.query.get_or_404(supplier_id)
+
+    supplier.company_name = request.form.get('company_name')
+    supplier.delivery_zone = request.form.get('delivery_zone')
+    supplier.contact_person = request.form.get('contact_person')
+    supplier.specialization = request.form.get('specialization')
+    supplier.address = request.form.get('address')
+    supplier.delivery_time_days = request.form.get('delivery_time_days') or 1
+
+    db.session.commit()
+    return redirect(url_for('suppliers.suppliers_page'))
+
 
 # таблица плана закупок
 @admin_bp.route('/procurement-plan')
@@ -549,6 +533,8 @@ def evaluate_potential_supplier():
     material_query = request.form.get('material_query', '').strip()
     price = request.form.get('price') or None
     lead_time_days = request.form.get('lead_time_days') or None
+    delivery_cost = request.form.get('delivery_cost') or 0
+    incoterms = request.form.get('incoterms') or 'EXW'
     city = request.form.get('city', '').strip()
     category = request.form.get('category', '').strip()
     website = request.form.get('website', '').strip()
@@ -576,6 +562,8 @@ def evaluate_potential_supplier():
     scoring = score_potential_supplier(
         material_query=material_query,
         price=price,
+        delivery_cost=delivery_cost,
+        incoterms=incoterms,
         lead_time_days=lead_time_days,
         rating=sentiment["rating"],
         review_risk_score=sentiment["risk_score"],
@@ -654,8 +642,10 @@ def evaluate_potential_supplier():
         category=category or None,
         source_url=website or None,
         material_query=material_query,
-        price=price,
         lead_time_days=lead_time_days,
+        delivery_cost=delivery_cost,
+        incoterms=incoterms,
+        price=scoring["supply_cost"],
         rating=sentiment["rating"],
         reviews_count=sentiment["reviews_count"],
         sentiment_score=sentiment["sentiment_score"],
