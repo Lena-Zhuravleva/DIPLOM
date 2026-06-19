@@ -189,7 +189,8 @@ def update_supplier(supplier_id):
     supplier.specialization = request.form.get('specialization')
     supplier.address = request.form.get('address')
     supplier.delivery_time_days = request.form.get('delivery_time_days') or 1
-
+    quality_score = request.form.get('quality_score')
+    supplier.quality_score = float(quality_score) if quality_score and quality_score != '' else None
     db.session.commit()
     return redirect(url_for('suppliers.suppliers_page'))
 
@@ -540,7 +541,7 @@ def evaluate_potential_supplier():
     website = request.form.get('website', '').strip()
     reviews_text = request.form.get('reviews_text', '').strip()
     scenario = request.form.get('scenario', 'balanced')
-
+    quality_score = request.form.get('quality_score')
     if not company_name:
         flash('Введите название поставщика', 'error')
         return redirect(url_for('admin.potential_suppliers_page'))
@@ -567,7 +568,8 @@ def evaluate_potential_supplier():
         lead_time_days=lead_time_days,
         rating=sentiment["rating"],
         review_risk_score=sentiment["risk_score"],
-        scenario=scenario
+        scenario=scenario,
+        quality_score=quality_score
     )
 
     warnings = scoring.get("warnings", [])
@@ -653,7 +655,8 @@ def evaluate_potential_supplier():
         risk_score=scoring["risk_score"],
         hybrid_score=scoring["hybrid_score"],
         decision=decision,
-        raw_description=decision_explanation
+        raw_description=decision_explanation,
+        quality_score=quality_score
     )
 
     db.session.add(item)

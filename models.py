@@ -37,6 +37,7 @@ class Supplier(db.Model):
     specialization = db.Column(db.String(100))
     contact_person = db.Column(db.String(100))
     delivery_time_days = db.Column(db.Integer, default=1)
+    quality_score = db.Column(db.Numeric(3, 1), default=None)
 
     is_active = db.Column(db.Boolean, default=True)
 
@@ -310,6 +311,7 @@ class PotentialSupplier(db.Model):
     reliability_score = db.Column(db.Numeric(4, 3))
     risk_score = db.Column(db.Numeric(4, 3))
     hybrid_score = db.Column(db.Numeric(6, 2))
+    quality_score = db.Column(db.Numeric(3, 1), default=None)
 
     decision = db.Column(db.String(50))
 

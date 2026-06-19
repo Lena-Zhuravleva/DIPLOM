@@ -121,6 +121,21 @@
              required>
     </div>
 
+    <div class="form-group">
+        <label for="quality_score">Оценка качества (экспертная)</label>
+        <select class="form-control" id="quality_score" name="quality_score">
+            <option value="">-- не указано --</option>
+            <option value="5">5 - Отлично</option>
+            <option value="4">4 - Хорошо</option>
+            <option value="3">3 - Удовлетворительно</option>
+            <option value="2">2 - Плохо</option>
+            <option value="1">1 - Неприемлемо</option>
+        </select>
+        <small class="form-text text-muted">
+            Указывается на основе проверки образцов или сертификатов
+        </small>
+    </div>
+
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <label>Отзывы о поставщике</label>
     </div>
@@ -196,6 +211,7 @@
           <th>Материал</th>
           <th>Город</th>
           <th>Цена</th>
+          <th>Качество</th>
           <th>Срок</th>
           <th>ML-рейтинг</th>
           <th>Отзывы</th>
@@ -222,6 +238,20 @@
           <td>{{ x.material_query or '—' }}</td>
           <td>{{ x.city or '—' }}</td>
           <td>{{ x.price or '—' }}</td>
+          <td>
+            {% if x.quality_score is not none and x.quality_score != '' %}
+                {% set q = x.quality_score|float %}
+                {% if q >= 4 %}
+                    <span class="badge badge-success">{{ q }}/5</span>
+                {% elif q >= 3 %}
+                    <span class="badge badge-warning">{{ q }}/5</span>
+                {% else %}
+                    <span class="badge badge-danger">{{ q }}/5</span>
+                {% endif %}
+            {% else %}
+                <span class="badge badge-secondary">—</span>
+            {% endif %}
+        </td>
           <td>{{ x.lead_time_days or '—' }} дн.</td>
           <td>{{ x.rating or '—' }}</td>
           <td>{{ x.reviews_count or 0 }}</td>

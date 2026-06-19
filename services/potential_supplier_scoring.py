@@ -21,15 +21,18 @@ def build_weights_by_scenario(scenario):
         "risk": ahp_weights[5],
     }
 
+
 def score_potential_supplier(
-    material_query,
-    price,
-    lead_time_days,
-    rating,
-    delivery_cost=0,
-    incoterms='EXW',
-    review_risk_score=None,
-    scenario='balanced'
+        material_query,
+        price,
+        lead_time_days,
+        rating,
+        delivery_cost=0,
+        incoterms='EXW',
+        review_risk_score=None,
+        scenario='balanced',
+        # ===== ДОБАВИТЬ ЭТОТ ПАРАМЕТР =====
+        quality_score=None  # 1-5 или None
 ):
     material = None
 
@@ -103,9 +106,35 @@ def score_potential_supplier(
         else 0.5
     )
 
-    # Для нового поставщика нет истории фактических поставок,
-    # поэтому качество принимается нейтральным.
-    quality_score = 0.7
+    # ============================================================
+    # ===== ИЗМЕНЕНИЕ: РАСЧЕТ quality_score =====
+    # ============================================================
+
+    quality_warning = None
+
+    if quality_score is not None:
+        try:
+            q_val = float(quality_score)
+            if 1 <= q_val <= 5:
+                quality_score_norm = q_val / 5  # нормализуем в [0, 1]
+                if q_val >= 4:
+                    quality_warning = f"✅ Качество подтверждено (оценка {q_val}/5)"
+                elif q_val >= 3:
+                    quality_warning = f"⚠️ Качество удовлетворительное ({q_val}/5)"
+                else:
+                    quality_warning = f"❌ Качество низкое ({q_val}/5)"
+            else:
+                quality_score_norm = 0.5
+                quality_warning = "⚠️ Некорректная оценка качества, используется нейтральное значение"
+        except (ValueError, TypeError):
+            quality_score_norm = 0.5
+            quality_warning = "⚠️ Некорректная оценка качества, используется нейтральное значение"
+    else:
+        # Не указана оценка качества — используем нейтральное значение
+        quality_score_norm = 0.5
+        quality_warning = "⚠️ Качество не проверено"
+
+    # ============================================================
 
     if review_risk_score is not None and float(review_risk_score) <= 0.25 and rating >= 4.0:
         reliability_score = 0.75
@@ -119,11 +148,13 @@ def score_potential_supplier(
     else:
         risk_score = max(0, min(1, float(review_risk_score)))
 
+    # ===== ИСПОЛЬЗУЕМ quality_score_norm ВМЕСТО СТАРОГО quality_score = 0.7 =====
+
     hybrid_score = calculate_nonlinear_score(
         rating_score=rating_score,
         price_score=price_score,
         lead_time_score=lead_time_score,
-        quality_score=quality_score,
+        quality_score=quality_score_norm,  # <-- ИЗМЕНЕНО
         reliability_score=reliability_score,
         risk_score=risk_score,
         weights=weights
@@ -146,11 +177,17 @@ def score_potential_supplier(
     if reliability_score < 0.6:
         warnings.append("Надежность поставщика пока недостаточно подтверждена историей поставок.")
 
+    # ===== ДОБАВЛЯЕМ ПРЕДУПРЕЖДЕНИЕ О КАЧЕСТВЕ =====
+    if quality_warning:
+        warnings.append(quality_warning)
+
     return {
         "rating_score": round(rating_score, 3),
         "price_score": round(price_score, 3),
         "lead_time_score": round(lead_time_score, 3),
-        "quality_score": round(quality_score, 3),
+        "quality_score": round(quality_score_norm, 3),  # нормализованная [0,1]
+        "quality_score_raw": quality_score,  # исходная 1-5 или None
+        "quality_checked": quality_score is not None,  # True/False
         "reliability_score": round(reliability_score, 3),
         "risk_score": round(risk_score, 3),
         "hybrid_score": hybrid_score,
@@ -163,7 +200,6 @@ def score_potential_supplier(
             "risk": round(weights["risk"], 3),
         },
         "warnings": warnings,
-
         "supply_cost": round(supply_cost, 2) if supply_cost is not None else None,
         "material_price": round(price, 2) if price is not None else None,
         "delivery_cost": round(delivery_cost, 2),

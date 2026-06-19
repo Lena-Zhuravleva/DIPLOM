@@ -23,6 +23,7 @@
           <th>Специализация</th>
           <th>Адрес</th>
           <th class="num">Срок</th>
+          <th class="center">Качество</th>
           <th class="center">Статус</th>
           <th class="center">Действия</th>
         </tr>
@@ -63,9 +64,30 @@
             </td>
 
             <td class="num">
-              <input class="form-control" name="delivery_time_days"
-                     type="number" min="1"
-                     value="{{ s.delivery_time_days or 1 }}">
+            <input class="form-control" name="delivery_time_days"
+                   type="number" min="1"
+                   value="{{ s.delivery_time_days or 1 }}">
+            </td>
+
+            <!-- ===== НОВАЯ ЯЧЕЙКА С КАЧЕСТВОМ ===== -->
+            <td class="center">
+                <select class="form-control" name="quality_score">
+                    <option value="">-- не указано --</option>
+                    <option value="5" {% if s.quality_score == 5 %}selected{% endif %}>5 - Отлично</option>
+                    <option value="4" {% if s.quality_score == 4 %}selected{% endif %}>4 - Хорошо</option>
+                    <option value="3" {% if s.quality_score == 3 %}selected{% endif %}>3 - Удовлетворительно</option>
+                    <option value="2" {% if s.quality_score == 2 %}selected{% endif %}>2 - Плохо</option>
+                    <option value="1" {% if s.quality_score == 1 %}selected{% endif %}>1 - Неприемлемо</option>
+                </select>
+            </td>
+            <!-- ================================= -->
+
+            <td class="center">
+                {% if s.is_active %}
+                    <span class="status-badge status-active">Активен</span>
+                {% else %}
+                    <span class="status-badge status-inactive">Неактивен</span>
+                {% endif %}
             </td>
 
             <td class="center">
@@ -102,7 +124,7 @@
         {% endfor %}
 
         {% if suppliers|length == 0 %}
-          <tr><td colspan="9" class="logi-empty">Поставщиков пока нет</td></tr>
+          <tr><td colspan="10" class="logi-empty">Поставщиков пока нет</td></tr>
         {% endif %}
       </tbody>
     </table>

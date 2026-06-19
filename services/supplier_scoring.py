@@ -14,6 +14,37 @@ def get_incoterms_coefficient(incoterms):
     return coeffs.get(incoterms or 'EXW', 1.0)
 
 
+def calculate_dynamic_risk(supplier_id, beta=0.3):
+    """
+    Динамический риск по формуле R_new = (1-β) * R_prev + β * r_t
+    Вычисляется по всей истории поставок.
+    """
+    from models import Delivery
+
+    deliveries = Delivery.query.filter_by(
+        supplier_id=supplier_id
+    ).order_by(Delivery.date.asc()).all()
+
+    if not deliveries:
+        return 0.5  # риск по умолчанию для поставщиков без истории
+
+    R = 0.5  # начальное значение
+
+    for d in deliveries:
+        # Определяем r_t: 1 — проблемная поставка, 0 — норма
+        r_t = 0
+        if d.status == 'cancelled':
+            r_t = 1
+        elif d.delay_minutes is not None and d.delay_minutes > 30:
+            r_t = 1
+        elif d.quality_score is not None and d.quality_score <= 2:
+            r_t = 1
+
+        # Формула (3)
+        R = (1 - beta) * R + beta * r_t
+
+    return R
+
 def calculate_supply_cost(price, delivery_cost, incoterms):
     return float(price or 0) + float(delivery_cost or 0) * get_incoterms_coefficient(incoterms)
 
@@ -364,7 +395,12 @@ def score_suppliers_for_material(material_id, scenario="balanced"):
         reliability_score = reliability_data["reliability_score"]
 
         risk_data = calculate_supplier_risk(supplier.id, total_deliveries)
-        risk_score = risk_data["risk_score"]
+        static_risk_score = risk_data["risk_score"]
+        dynamic_risk = calculate_dynamic_risk(supplier.id)
+
+        # Объединяем оба риска
+        risk_score = 0.5 * static_risk_score + 0.5 * dynamic_risk
+
         avg_delay = risk_data["avg_delay"]
         bad_quality_count = risk_data["bad_quality_count"]
 
